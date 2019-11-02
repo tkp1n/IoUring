@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring", "IoUring\IoUring.csproj", "{01069FE7-BBA2-4B44-86ED-25668456CAA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Test", "IoUring.Test\IoUring.Test.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{01069FE7-BBA2-4B44-86ED-25668456CAA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01069FE7-BBA2-4B44-86ED-25668456CAA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01069FE7-BBA2-4B44-86ED-25668456CAA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01069FE7-BBA2-4B44-86ED-25668456CAA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
