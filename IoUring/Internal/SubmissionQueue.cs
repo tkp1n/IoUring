@@ -127,7 +127,7 @@ namespace IoUring.Internal
             {
                 array[tailLocal & maskLocal] = headInternal & maskLocal;
                 tailLocal++;
-                head++;
+                headInternal++;
             }
 
             // write barrier to ensure all manipulations above are visible to the kernel once the tail-bump is observed

@@ -70,7 +70,7 @@ namespace IoUring
         {
             void* ptr;
 
-            if ((p->resv[0] & IORING_FEAT_SINGLE_MMAP) != 0)
+            if ((p->resv[0] & IORING_FEAT_SINGLE_MMAP) != 0) // TODO: Use p->features, once in Tmds.Linux
             {
                 ptr = sqHandle.DangerousGetHandle().ToPointer();
                 cqHandle = sqHandle;
