@@ -34,7 +34,7 @@ namespace IoUring
             result = new Completion(cqe->res, cqe->user_data);
 
             // ensure the kernel can take notice of us reading the latest Event
-            Volatile.Write(ref *_cq.head, head + 1); 
+            Volatile.Write(ref *_cq.head, unchecked(head + 1)); 
             return true;
         }
     }
