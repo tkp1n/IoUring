@@ -13,68 +13,68 @@ namespace IoUring.Internal
         /// <summary>
         /// Incremented by the kernel to let the application know, another element was consumed.
         /// </summary>
-        public uint* head;
+        private uint* _head;
 
         /// <summary>
         /// Incremented by the application to let the kernel know, another element was submitted.
         /// </summary>
-        public uint* tail;
+        private uint* _tail;
 
         /// <summary>
         /// Mask to apply to potentially overflowing tail counter to get a valid index within the ring
         /// </summary>
-        public uint* ringMask;
+        private uint* _ringMask;
 
         /// <summary>
         /// Number of entries in the ring
         /// </summary>
-        public uint* ringEntries;
+        private uint* _ringEntries;
 
         /// <summary>
         /// Set to IORING_SQ_NEED_WAKEUP by the kernel, if the Submission Queue polling thread is idle and needs
         /// a call to io_uring_enter with the IORING_ENTER_SQ_WAKEUP flag set.
         /// </summary>
-        public uint* flags;
+        private uint* _flags;
 
         /// <summary>
         /// Incremented by the kernel on each invalid submission.
         /// </summary>
-        public uint* dropped;
+        private uint* _dropped;
 
         /// <summary>
-        /// Array of indices within the <see cref="sqes"/>
+        /// Array of indices within the <see cref="_sqes"/>
         /// </summary>
-        public uint* array;
+        private uint* _array;
 
         /// <summary>
         /// Submission Queue Entries to be filled by the application
         /// </summary>
-        public io_uring_sqe* sqes;
+        private io_uring_sqe* _sqes;
 
         /// <summary>
         /// Index of the last Submission Queue Entry handed out to the application (to be filled).
-        /// This is typically behind <see cref="tail"/> as the kernel must not yet know about bumps of the internal index, before the Entry is fully prepped
+        /// This is typically behind <see cref="_tail"/> as the kernel must not yet know about bumps of the internal index, before the Entry is fully prepped
         /// </summary>
-        public uint tailInternal;
+        private uint _tailInternal;
 
         /// <summary>
         /// Index of the last Submission Queue Entry handed over to the kernel.
-        /// This is typically ahead of <see cref="head"/> as the kernel might not have had the chance to consume the item at the given index.
+        /// This is typically ahead of <see cref="_head"/> as the kernel might not have had the chance to consume the item at the given index.
         /// </summary>
-        public uint headInternal;
+        private uint _headInternal;
 
         private SubmissionQueue(uint* head, uint* tail, uint* ringMask, uint* ringEntries, uint* flags, uint* dropped, uint* array, io_uring_sqe* sqes)
         {
-            this.head = head;
-            this.tail = tail;
-            this.ringMask = ringMask;
-            this.ringEntries = ringEntries;
-            this.flags = flags;
-            this.dropped = dropped;
-            this.array = array;
-            this.sqes = sqes;
-            this.tailInternal = 0;
-            this.headInternal = 0;
+            _head = head;
+            _tail = tail;
+            _ringMask = ringMask;
+            _ringEntries = ringEntries;
+            _flags = flags;
+            _dropped = dropped;
+            _array = array;
+            _sqes = sqes;
+            _tailInternal = 0;
+            _headInternal = 0;
         }
 
         public static SubmissionQueue CreateSubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements)
@@ -89,12 +89,12 @@ namespace IoUring.Internal
                 sqes: elements
             );
 
-        public bool IsFull => tailInternal - headInternal > *ringEntries;
+        public bool IsFull => _tailInternal - _headInternal > *_ringEntries;
 
-        public uint EntriesToSubmit => tailInternal - headInternal;
+        public uint EntriesToSubmit => _tailInternal - _headInternal;
 
         [Conditional("DEBUG")]
-        public void AssertNoDroppedSubmissions() => Debug.Assert(Volatile.Read(ref *dropped) == 0);
+        public void AssertNoDroppedSubmissions() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
         /// <summary>
         /// Finds the next Submission Queue Entry to be written to. The entry will be initialized with zeroes.
@@ -108,8 +108,8 @@ namespace IoUring.Internal
                 return (io_uring_sqe*) NULL;
             }
 
-            io_uring_sqe* sqe = &sqes[tailInternal & *ringMask];
-            tailInternal = unchecked(tailInternal + 1); // natural overflow of uint is desired
+            io_uring_sqe* sqe = &_sqes[_tailInternal & *_ringMask];
+            _tailInternal = unchecked(_tailInternal + 1); // natural overflow of uint is desired
 
             // Handout cleaned sqe
             Unsafe.InitBlockUnaligned(sqe, 0x00, (uint) sizeof(io_uring_sqe));
@@ -121,17 +121,17 @@ namespace IoUring.Internal
             uint gap = EntriesToSubmit;
             if (gap == 0) return 0;
 
-            uint tailLocal = *tail;
-            uint maskLocal = *ringMask;
+            uint tail = *_tail;
+            uint mask = *_ringMask;
             for (uint i = 0; i < gap; i++)
             {
-                array[tailLocal & maskLocal] = headInternal & maskLocal;
-                tailLocal = unchecked(tailLocal + 1);
-                headInternal = unchecked(headInternal + 1);
+                _array[tail & mask] = _headInternal & mask;
+                tail = unchecked(tail + 1);
+                _headInternal = unchecked(_headInternal + 1);
             }
 
             // write barrier to ensure all manipulations above are visible to the kernel once the tail-bump is observed
-            Volatile.Write(ref *tail, tailLocal);
+            Volatile.Write(ref *_tail, tail);
 
             return gap;
         }
@@ -141,7 +141,7 @@ namespace IoUring.Internal
             enterFlags = 0;
             if (kernelSqPolling)
             {
-                if ((*flags & IORING_SQ_NEED_WAKEUP) != 0)
+                if ((*_flags & IORING_SQ_NEED_WAKEUP) != 0)
                 {
                     // Kernel is polling but transitioned to idle (IORING_SQ_NEED_WAKEUP)
                     enterFlags |= IORING_ENTER_SQ_WAKEUP;

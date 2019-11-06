@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 
 namespace IoUring.Test
@@ -42,6 +43,29 @@ namespace IoUring.Test
             {
                 Assert.True(r.TryRead(ref c));
                 Assert.Equal(j, c.userData);
+            }
+        }
+
+        [Fact]
+        public void BulkRead()
+        {
+            using var r = new Ring(8);
+            
+            uint i;
+            for (i = 0; i < 8; i++)
+            {
+                Assert.True(r.PrepareNop(i));
+            }
+
+            Assert.Equal(i, r.Submit());
+            Assert.Equal(i, r.Flush(i));
+
+            Span<Completion> completions = stackalloc Completion[(int)i];
+
+            r.Read(completions);
+            for (uint j = 0; j < i; j++)
+            {
+                Assert.Equal(j, completions[(int)j].userData);
             }
         }
     }
