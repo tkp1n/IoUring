@@ -126,8 +126,8 @@ namespace IoUring.Internal
             for (uint i = 0; i < gap; i++)
             {
                 array[tailLocal & maskLocal] = headInternal & maskLocal;
-                tailLocal++;
-                headInternal++;
+                tailLocal = unchecked(tailLocal + 1);
+                headInternal = unchecked(headInternal + 1);
             }
 
             // write barrier to ensure all manipulations above are visible to the kernel once the tail-bump is observed
