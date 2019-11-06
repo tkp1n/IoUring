@@ -51,7 +51,7 @@ namespace IoUring.Test
         public void BulkRead()
         {
             using var r = new Ring(8);
-            
+
             uint i;
             for (i = 0; i < 8; i++)
             {
@@ -68,6 +68,28 @@ namespace IoUring.Test
             {
                 Assert.Equal(0, completions[(int)j].result);
                 Assert.Equal(j, completions[(int)j].userData);
+            }
+        }
+
+        [Fact]
+        public void BlockingSingleRead()
+        {
+            using var r = new Ring(8);
+
+            uint i;
+            for (i = 0; i < 8; i++)
+            {
+                Assert.True(r.PrepareNop(i));
+            }
+
+            Assert.Equal(i, r.Submit());
+            Assert.Equal(i, r.Flush(i));
+
+            for (uint j = 0; j < i; j++)
+            {
+                var completion = r.Read();
+                Assert.Equal(0, completion.result);
+                Assert.Equal(j, completion.userData);
             }
         }
     }

@@ -86,7 +86,26 @@ namespace IoUring.Internal
             return true;
         }
 
-        public int Read(int ringFd, Span<Completion> results)
+        public Completion Read(int ringFd)
+        {
+            Completion completion = default;
+
+            while (true)
+            {
+                int res = io_uring_enter(ringFd, 0, 1, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
+                if (res < 0)
+                {
+                    throw new ErrnoException(errno);
+                }
+
+                if (TryRead(ref completion))
+                {
+                    return completion;
+                }
+            }
+        }
+
+        public void Read(int ringFd, Span<Completion> results)
         {
             int read = 0;
             while (read < results.Length)
@@ -103,8 +122,6 @@ namespace IoUring.Internal
                     throw new ErrnoException(errno);
                 }
             }
-
-            return read;
         }
     }
 }
