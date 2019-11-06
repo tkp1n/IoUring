@@ -20,8 +20,8 @@ namespace IoUring.Test
 
             Completion c = default;
             Assert.True(r.TryRead(ref c));
+            Assert.Equal(0, c.result);
             Assert.Equal(123ul, c.userData);
-            Assert.Equal(0, c.res);
         }
 
         [Fact]
@@ -42,6 +42,7 @@ namespace IoUring.Test
             for (uint j = 0; j < i; j++)
             {
                 Assert.True(r.TryRead(ref c));
+                Assert.Equal(0, c.result);
                 Assert.Equal(j, c.userData);
             }
         }
@@ -65,6 +66,7 @@ namespace IoUring.Test
             r.Read(completions);
             for (uint j = 0; j < i; j++)
             {
+                Assert.Equal(0, completions[(int)j].result);
                 Assert.Equal(j, completions[(int)j].userData);
             }
         }
