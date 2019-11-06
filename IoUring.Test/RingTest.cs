@@ -5,7 +5,8 @@ namespace IoUring.Test
     public class RingTest
     {
         [Fact]
-        public void SmokeTest() {
+        public void SmokeTest() 
+        {
             var r = new Ring(8);
             Assert.NotNull(r);
             Assert.False(r.KernelIoPolling);
@@ -20,6 +21,28 @@ namespace IoUring.Test
             Assert.True(r.TryRead(ref c));
             Assert.Equal(123ul, c.userData);
             Assert.Equal(0, c.res);
+        }
+
+        [Fact]
+        public void BulkSubmit()
+        {
+            using var r = new Ring(8);
+
+            uint i;
+            for (i = 0; i < 8; i++)
+            {
+                Assert.True(r.PrepareNop(i));
+            }
+
+            Assert.Equal(i, r.Submit());
+            Assert.Equal(i, r.Flush(i));
+
+            Completion c = default;
+            for (uint j = 0; j < i; j++)
+            {
+                Assert.True(r.TryRead(ref c));
+                Assert.Equal(j, c.userData);
+            }
         }
     }
 }
