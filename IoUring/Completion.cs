@@ -5,22 +5,22 @@ namespace IoUring
         /// <summary>
         /// Return value of the completed operation or -errno
         /// </summary>
-        public readonly int res;
+        public readonly int result;
 
         /// <summary>
         /// User data supplied, when submitting the operation
         /// </summary>
         public readonly ulong userData;
 
-        public Completion(int res, ulong userData)
+        public Completion(int result, ulong userData)
         {
-            this.res = res;
+            this.result = result;
             this.userData = userData;
         }
 
-        public void Deconstruct(out int res, out ulong userData)
+        public void Deconstruct(out int result, out ulong userData)
         {
-            res = this.res;
+            result = this.result;
             userData = this.userData;
         }
     }
