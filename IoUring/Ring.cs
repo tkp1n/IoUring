@@ -3,6 +3,7 @@ using Tmds.Linux;
 using IoUring.Internal;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
+using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring
 {
@@ -18,7 +19,7 @@ namespace IoUring
             int fd = io_uring_setup(entries, p);
             if (fd < 0)
             {
-                throw new ErrnoException(errno);
+                ThrowErrnoException();
             }
 
             return fd;
@@ -51,7 +52,7 @@ namespace IoUring
             void* ptr = mmap(NULL, sqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQ_RING);
             if (ptr == MAP_FAILED)
             {
-                throw new ErrnoException(errno);
+                ThrowErrnoException();
             }
             sqHandle = new UnmapHandle(ptr, sqSize);
 
@@ -59,7 +60,7 @@ namespace IoUring
             void* sqePtr = mmap(NULL, sqeSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQES);
             if (sqePtr == MAP_FAILED)
             {
-                throw new ErrnoException(errno);
+                ThrowErrnoException();
             }
             sqeHandle = new UnmapHandle(sqePtr, sqeSize);
             
@@ -80,7 +81,7 @@ namespace IoUring
                 ptr = mmap(NULL, cqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_CQ_RING);
                 if (ptr == MAP_FAILED)
                 {
-                    throw new ErrnoException(errno);
+                    ThrowErrnoException();
                 }
 
                 cqHandle = new UnmapHandle(ptr, cqSize);
@@ -102,8 +103,6 @@ namespace IoUring
             _ringFd.SetHandle(fd);
 
             _flags = p.flags;
-            _sqSize = p.sq_entries;
-            _cqSize = p.cq_entries;
 
             var (sqSize, cqSize) = GetSize(&p);
 
@@ -123,18 +122,19 @@ namespace IoUring
         /// <summary>
         /// Whether the kernel is polling for entries on the Submission Queue.
         /// </summary>
-        public bool KernelSubmissionQueuePolling => (_flags & IORING_SETUP_SQPOLL) != 0;
+        public bool SubmissionPollingEnabled => (_flags & IORING_SETUP_SQPOLL) != 0;
 
         /// <summary>
         /// Whether the kernel Submission Queue polling thread is created with CPU affinity.
         /// </summary>
-        public bool PollingThreadCpuAffinity => (_flags & IORING_SETUP_SQ_AFF) != 0;
+        public bool SubmissionQueuePollingCpuAffinity => (_flags & IORING_SETUP_SQ_AFF) != 0;
 
         /// <summary>
         /// Whether the kernel to polls for I/O completions (instead of using interrupt driven I/O).
         /// </summary>
-        public bool KernelIoPolling => (_flags & IORING_SETUP_IOPOLL) != 0;
+        public bool IoPollingEnabled => (_flags & IORING_SETUP_IOPOLL) != 0;
 
+        /// <inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
             _ringFd?.Dispose();

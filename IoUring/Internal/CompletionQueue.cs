@@ -1,9 +1,9 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
+using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Internal
 {
@@ -60,19 +60,39 @@ namespace IoUring.Internal
                 cqes: Add<io_uring_cqe>(ringBase, offsets->cqes)
             );
 
-        [Conditional("DEBUG")]
-        public void AssertNoOverflows() => Debug.Assert(Volatile.Read(ref *_overflow) == 0);
-
-        public bool TryRead(ref Completion result)
+        public bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result)
         {
-            // ensure we see everything the kernel manipulated prior to the head bump
-            var head = Volatile.Read(ref *_head); 
+            var head = *_head; 
 
-            AssertNoOverflows();
-            
-            if (head == *_tail)
+            // ensure we see everything the kernel manipulated prior to the tail bump
+            bool eventsAvailable = head != Volatile.Read(ref *_tail);
+
+            if (kernelIoPolling && !eventsAvailable)
             {
-                // No Completion Queue Event available
+                /*
+                 * If the kernel is polling I/O, we must reap completions by calling io_uring_enter.
+                 * As TryRead is not expected to block if no completions are available, min_complete is set to 0.
+                 * We therefore must check again if completions are available blow.
+                 */
+                int ret = io_uring_enter(ringFd, 0, 0, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
+                if (ret < 0)
+                {
+                    ThrowErrnoException();
+                }
+
+                // double-check
+                eventsAvailable = head != Volatile.Read(ref *_tail);
+            }
+
+            // piggy-back on the read-barrier above to verify that we have no overflows
+            uint overflow = *_overflow;
+            if (overflow > 0)
+            {
+                ThrowOverflowException(overflow);
+            }
+
+            if (eventsAvailable)
+            {
                 return false;
             }
 
@@ -81,12 +101,12 @@ namespace IoUring.Internal
 
             result = new Completion(cqe->res, cqe->user_data);
 
-            // ensure the kernel can take notice of us reading the latest Event
+            // ensure the kernel can take notice of us consuming the latest Event
             Volatile.Write(ref *_head, unchecked(head + 1)); 
             return true;
         }
 
-        public Completion Read(int ringFd)
+        public Completion Read(int ringFd, bool kernelIoPolling)
         {
             Completion completion = default;
 
@@ -95,22 +115,22 @@ namespace IoUring.Internal
                 int res = io_uring_enter(ringFd, 0, 1, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
                 if (res < 0)
                 {
-                    throw new ErrnoException(errno);
+                    ThrowErrnoException();
                 }
 
-                if (TryRead(ref completion))
+                if (TryRead(ringFd, kernelIoPolling, ref completion))
                 {
                     return completion;
                 }
             }
         }
 
-        public void Read(int ringFd, Span<Completion> results)
+        public void Read(int ringFd, bool kernelIoPolling, Span<Completion> results)
         {
             int read = 0;
             while (read < results.Length)
             {
-                if (TryRead(ref results[read]))
+                if (TryRead(read, kernelIoPolling, ref results[read]))
                 {
                     read++;
                     continue; // keep on reading without syscall-ing
@@ -119,7 +139,7 @@ namespace IoUring.Internal
                 int res = io_uring_enter(ringFd, 0, (uint) (results.Length - read), IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
                 if (res < 0)
                 {
-                    throw new ErrnoException(errno);
+                    ThrowErrnoException();
                 }
             }
         }
