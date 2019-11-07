@@ -3,13 +3,12 @@ using Tmds.Linux;
 using IoUring.Internal;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
+using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring 
 {
     public unsafe partial class Ring
     {
-        private readonly uint _sqSize;
-
         private readonly SubmissionQueue _sq;
         private readonly UnmapHandle _sqHandle;
         private readonly UnmapHandle _sqeHandle;
@@ -19,16 +18,31 @@ namespace IoUring
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
-        /// <param name="drain"></param>
-        /// <returns></returns>
-        public bool PrepareNop(ulong userData = 0, bool drain = false)
+        /// <param name="options"></param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareNop(userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a NOP to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options"></param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_NOP;
             sqe->user_data = userData;
-            if (drain) sqe->flags |= IOSQE_IO_DRAIN;
+            sqe->flags |= (byte) options;
 
             return true;
         }
@@ -50,8 +64,9 @@ namespace IoUring
         /// <param name="minComplete">The number of completed Submission Queue Entries required before returning (default = 0)</param>
         /// <returns>The number of flushed Submission Queue Entries</returns>
         /// <exception cref="ArgumentOutOfRangeException">If <paramref name="minComplete"/> > <paramref name="toFlush"/></exception>
+        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
         /// <exception cref="ErrnoException">On negative result from syscall</exception>
         public uint Flush(uint toFlush, uint minComplete = 0)
-            => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), KernelSubmissionQueuePolling, toFlush, minComplete);
+            => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete);
     }
 }

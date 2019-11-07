@@ -10,11 +10,11 @@ namespace IoUring.Test
         {
             var r = new Ring(8);
             Assert.NotNull(r);
-            Assert.False(r.KernelIoPolling);
-            Assert.False(r.KernelSubmissionQueuePolling);
-            Assert.False(r.PollingThreadCpuAffinity);
+            Assert.False(r.IoPollingEnabled);
+            Assert.False(r.SubmissionPollingEnabled);
+            Assert.False(r.SubmissionQueuePollingCpuAffinity);
 
-            Assert.True(r.PrepareNop(123ul));
+            Assert.True(r.TryPrepareNop(123ul));
             Assert.Equal(1u, r.Submit());
             Assert.Equal(1u, r.Flush(1));
 
@@ -32,7 +32,7 @@ namespace IoUring.Test
             uint i;
             for (i = 0; i < 8; i++)
             {
-                Assert.True(r.PrepareNop(i));
+                Assert.True(r.TryPrepareNop(i));
             }
 
             Assert.Equal(i, r.Submit());
@@ -55,7 +55,7 @@ namespace IoUring.Test
             uint i;
             for (i = 0; i < 8; i++)
             {
-                Assert.True(r.PrepareNop(i));
+                Assert.True(r.TryPrepareNop(i));
             }
 
             Assert.Equal(i, r.Submit());
@@ -79,7 +79,7 @@ namespace IoUring.Test
             uint i;
             for (i = 0; i < 8; i++)
             {
-                Assert.True(r.PrepareNop(i));
+                Assert.True(r.TryPrepareNop(i));
             }
 
             Assert.Equal(i, r.Submit());

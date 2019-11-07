@@ -1,10 +1,10 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
+using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Internal
 {
@@ -93,9 +93,6 @@ namespace IoUring.Internal
 
         public uint EntriesToSubmit => _tailInternal - _headInternal;
 
-        [Conditional("DEBUG")]
-        public void AssertNoDroppedSubmissions() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
-
         /// <summary>
         /// Finds the next Submission Queue Entry to be written to. The entry will be initialized with zeroes.
         /// If the Submission Queue is full, a null-pointer is returned.
@@ -158,6 +155,7 @@ namespace IoUring.Internal
 
         public uint Flush(int ringFd, bool kernelIoPolling, uint toFlush, uint minComplete)
         {
+            // TODO: use throw helper
             if (minComplete > toFlush) throw new ArgumentOutOfRangeException(nameof(minComplete), "must not be greater than toFlush");
 
             if (!ShouldFlush(kernelIoPolling, out uint enterFlags))
@@ -171,11 +169,16 @@ namespace IoUring.Internal
             int res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL);
             if (res < 0)
             {
-                throw new ErrnoException(errno);
+                ThrowErrnoException();
             }
 
-            AssertNoDroppedSubmissions();
-            
+            // Memory barrier is sadly only required to reliably fetch number of dropped submissions (typically zero)
+            uint dropped = Volatile.Read(ref *_dropped);
+            if (dropped != 0)
+            {
+                ThrowSubmissionEntryDroppedException(dropped);
+            }
+
             return (uint)res;
         }
     }

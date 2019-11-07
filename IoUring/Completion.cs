@@ -1,5 +1,8 @@
 namespace IoUring
 {
+    /// <summary>
+    /// Data associated with a Completion Queue Event
+    /// </summary>
     public readonly struct Completion
     {
         /// <summary>
