@@ -97,28 +97,29 @@ namespace IoUring.Test
         [Fact]
         public void ParallelReadWrite()
         {
-            using var r = new Ring(1024);
+            const int events = 1024;
+            using var r = new Ring(events);
 
             var reader = new Thread(state =>
             {
                 var ring = (Ring) state;
                 Completion c = default;
                 ulong i = 0;
-                while (i < 10_000)
+                while (i < events)
                 {
-                    while (i < 10_000 & ring.TryRead(ref c))
+                    while (i < events & ring.TryRead(ref c))
                     {
-                        i++;
                         Assert.Equal(0, c.result);
                         Assert.Equal(i, c.userData);
+                        i++;
                     }
 
-                    if (i < 10_000)
+                    if (i < events)
                     {
                         c = ring.Read();
-                        i++;
                         Assert.Equal(0, c.result);
                         Assert.Equal(i, c.userData);
+                        i++;
                     }
                 }
             });
@@ -128,23 +129,22 @@ namespace IoUring.Test
                 var ring = (Ring) state;
                 uint toSubmit = 0;
                 uint toFlush = 0;
-                for (ulong i = 0; i < 10_000; i++)
+                for (ulong i = 0; i < events; i++)
                 {
                     if (!ring.TryPrepareNop(i))
                     {
-                        Thread.Sleep(10);
                         i--;
                         continue;
                     }
 
                     toSubmit++;
-                    if (toSubmit % 10 == 0)
+                    if (toSubmit % 8 == 0)
                     {
                         toSubmit = 0;
                         toFlush += ring.Submit();
                     }
 
-                    if (toFlush % 30 == 0)
+                    if (toFlush % 16 == 0)
                     {
                         ring.Flush(toFlush);
                         toFlush = 0;
