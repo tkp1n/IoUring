@@ -91,7 +91,7 @@ namespace IoUring.Internal
                 ThrowOverflowException(overflow);
             }
 
-            if (eventsAvailable)
+            if (!eventsAvailable)
             {
                 return false;
             }
