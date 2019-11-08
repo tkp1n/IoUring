@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Xunit;
 
 namespace IoUring.Test
@@ -91,6 +92,71 @@ namespace IoUring.Test
                 Assert.Equal(0, completion.result);
                 Assert.Equal(j, completion.userData);
             }
+        }
+
+        [Fact]
+        public void ParallelReadWrite()
+        {
+            using var r = new Ring(1024);
+
+            var reader = new Thread(state =>
+            {
+                var ring = (Ring) state;
+                Completion c = default;
+                ulong i = 0;
+                while (i < 10_000)
+                {
+                    while (i < 10_000 & ring.TryRead(ref c))
+                    {
+                        i++;
+                        Assert.Equal(0, c.result);
+                        Assert.Equal(i, c.userData);
+                    }
+
+                    if (i < 10_000)
+                    {
+                        c = ring.Read();
+                        i++;
+                        Assert.Equal(0, c.result);
+                        Assert.Equal(i, c.userData);
+                    }
+                }
+            });
+
+            var writer = new Thread(state =>
+            {
+                var ring = (Ring) state;
+                uint toSubmit = 0;
+                uint toFlush = 0;
+                for (ulong i = 0; i < 10_000; i++)
+                {
+                    if (!ring.TryPrepareNop(i))
+                    {
+                        Thread.Sleep(10);
+                        i--;
+                        continue;
+                    }
+
+                    toSubmit++;
+                    if (toSubmit % 10 == 0)
+                    {
+                        toSubmit = 0;
+                        toFlush += ring.Submit();
+                    }
+
+                    if (toFlush % 30 == 0)
+                    {
+                        ring.Flush(toFlush);
+                        toFlush = 0;
+                    }
+                }
+            });
+
+            reader.Start(r);
+            writer.Start(r);
+
+            reader.Join();
+            writer.Join();
         }
     }
 }
