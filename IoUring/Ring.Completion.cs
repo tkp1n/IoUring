@@ -3,7 +3,7 @@ using IoUring.Internal;
 
 namespace IoUring
 {
-    public unsafe partial class Ring
+    public partial class Ring
     {
         private readonly CompletionQueue _cq;
         private readonly UnmapHandle _cqHandle;
