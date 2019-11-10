@@ -53,7 +53,7 @@ namespace IoUring.Internal
 
         /// <summary>
         /// Index of the last Submission Queue Entry handed out to the application (to be filled).
-        /// This is typically behind <see cref="_tail"/> as the kernel must not yet know about bumps of the internal index, before the Entry is fully prepped
+        /// This is typically behind <see cref="_tail"/> as the kernel must not yet know about bumps of the internal index, before the Entry is fully prepped.
         /// </summary>
         private uint _tailInternal;
 

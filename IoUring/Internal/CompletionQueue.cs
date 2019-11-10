@@ -40,6 +40,10 @@ namespace IoUring.Internal
         /// </summary>
         private io_uring_cqe* _cqes;
 
+        private uint* _headInternal;
+
+        private uint* _tailInternal;
+
         private CompletionQueue(uint* head, uint* tail, uint* ringMask, uint* ringEntries, uint* overflow, io_uring_cqe* cqes)
         {
             _head = head;
@@ -48,6 +52,8 @@ namespace IoUring.Internal
             _ringEntries = ringEntries;
             _overflow = overflow;
             _cqes = cqes;
+            _headInternal = head;
+            _tailInternal = tail;
         }
 
         public static CompletionQueue CreateCompletionQueue(void* ringBase, io_cqring_offsets* offsets) =>
@@ -62,48 +68,7 @@ namespace IoUring.Internal
 
         public bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result)
         {
-            var head = *_head; 
-
-            // ensure we see everything the kernel manipulated prior to the tail bump
-            bool eventsAvailable = head != Volatile.Read(ref *_tail);
-
-            if (kernelIoPolling && !eventsAvailable)
-            {
-                /*
-                 * If the kernel is polling I/O, we must reap completions by calling io_uring_enter.
-                 * As TryRead is not expected to block if no completions are available, min_complete is set to 0.
-                 * We therefore must check again if completions are available blow.
-                 */
-                int ret = io_uring_enter(ringFd, 0, 0, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
-                if (ret < 0)
-                {
-                    ThrowErrnoException();
-                }
-
-                // double-check
-                eventsAvailable = head != Volatile.Read(ref *_tail);
-            }
-
-            // piggy-back on the read-barrier above to verify that we have no overflows
-            uint overflow = *_overflow;
-            if (overflow > 0)
-            {
-                ThrowOverflowException(overflow);
-            }
-
-            if (!eventsAvailable)
-            {
-                return false;
-            }
-
-            var index = head & *_ringMask;
-            var cqe = &_cqes[index];
-
-            result = new Completion(cqe->res, cqe->user_data);
-
-            // ensure the kernel can take notice of us consuming the latest Event
-            Volatile.Write(ref *_head, unchecked(head + 1)); 
-            return true;
+            return TryRead(ringFd, kernelIoPolling, ref result, true);
         }
 
         public Completion Read(int ringFd, bool kernelIoPolling)
@@ -118,7 +83,7 @@ namespace IoUring.Internal
                     ThrowErrnoException();
                 }
 
-                if (TryRead(ringFd, kernelIoPolling, ref completion))
+                if (TryRead(ringFd, kernelIoPolling, ref completion, true))
                 {
                     return completion;
                 }
@@ -130,7 +95,8 @@ namespace IoUring.Internal
             int read = 0;
             while (read < results.Length)
             {
-                if (TryRead(read, kernelIoPolling, ref results[read]))
+                // Head is moved below to avoid memory barrier in loop
+                if (TryRead(read, kernelIoPolling, ref results[read], false))
                 {
                     read++;
                     continue; // keep on reading without syscall-ing
@@ -141,6 +107,66 @@ namespace IoUring.Internal
                 {
                     ThrowErrnoException();
                 }
+            }
+
+            // Move head now, as we skipped the memory barrier in the TryRead above
+            Volatile.Write(ref *_head, *_headInternal);
+        }
+
+        private bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result, bool bumpHead)
+        {
+            var head = *_head;
+
+            // Try read from internal tail first to avoid memory barrier
+            bool eventsAvailable = head != *_tailInternal;
+
+            if (!eventsAvailable)
+            {
+                if (kernelIoPolling)
+                {
+                    // If the kernel is polling I/O, we must reap completions.
+                    PollCompletion(ringFd);
+                }
+
+                // double-check with a memory barrier to ensure we see everything the kernel manipulated prior to the tail bump
+                eventsAvailable = head != Volatile.Read(ref *_tail);
+                _tailInternal = _tail;
+
+                // piggy-back on the read-barrier above to verify that we have no overflows
+                uint overflow = *_overflow;
+                if (overflow > 0)
+                {
+                    ThrowOverflowException(overflow);
+                }
+            }
+
+            if (!eventsAvailable)
+            {
+                return false;
+            }
+
+            var index = head & *_ringMask;
+            var cqe = &_cqes[index];
+
+            result = new Completion(cqe->res, cqe->user_data);
+
+            *_headInternal = unchecked(*_headInternal + 1);
+            if (bumpHead)
+            {
+                // ensure the kernel can take notice of us consuming the Events
+                Volatile.Write(ref *_head, *_headInternal); 
+            }
+
+            return true;
+        }
+
+        private static void PollCompletion(int ringFd)
+        {
+            // We are not expected to block if no completions are available, so min_complete is set to 0.
+            int ret = io_uring_enter(ringFd, 0, 0, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
+            if (ret < 0)
+            {
+                ThrowErrnoException();
             }
         }
     }
