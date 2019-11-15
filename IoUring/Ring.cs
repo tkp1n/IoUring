@@ -40,7 +40,7 @@ namespace IoUring
             var sqSize = SqSize(p);
             var cqSize = CqSize(p);
 
-            if ((p->resv[0] & IORING_FEAT_SINGLE_MMAP) != 0) // TODO: Use p->features, once in Tmds.Linux
+            if ((p->features & IORING_FEAT_SINGLE_MMAP) != 0)
             {
                 sqSize = cqSize = (size_t) Math.Max(cqSize, sqSize);
             }
@@ -72,7 +72,7 @@ namespace IoUring
         {
             void* ptr;
 
-            if ((p->resv[0] & IORING_FEAT_SINGLE_MMAP) != 0) // TODO: Use p->features, once in Tmds.Linux
+            if ((p->features & IORING_FEAT_SINGLE_MMAP) != 0)
             {
                 ptr = sqHandle.DangerousGetHandle().ToPointer();
                 cqHandle = sqHandle;
