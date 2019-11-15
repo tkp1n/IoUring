@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Tmds.LibC" Version="0.3.0-191105-179" />
+      <PackageReference Include="Tmds.LibC" Version="0.3.0-191113-181" />
     </ItemGroup>
 
 </Project>
