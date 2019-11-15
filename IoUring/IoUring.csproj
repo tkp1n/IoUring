@@ -3,10 +3,30 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp3.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <VersionPrefix>0.1.0</VersionPrefix>
+
+        <Title>IoUring</Title>
+        <Copyright>Copyright © Nicolas Portmann 2019</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>Nicolas Portmann</Authors>
+        <Description>.NET wrapper for io_uring</Description>
+        <PackageTags>io_uring</PackageTags>
+
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <NeutralLanguage>en-US</NeutralLanguage>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Tmds.LibC" Version="0.3.0-191105-179" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="All" />
+    </ItemGroup>
 </Project>
