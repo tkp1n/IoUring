@@ -1,0 +1,25 @@
+name: .NET Core
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.0.100
+    - name: Build
+      run: dotnet build
+    - name: Test
+      run: dotnet test
+    - name: Pack
+      if: github.event_name != 'pull_request'
+      run: dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
+    - name: Publish (MyGet)
+      if: github.event_name != 'pull_request'
+      run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
