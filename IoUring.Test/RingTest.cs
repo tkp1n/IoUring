@@ -73,6 +73,27 @@ namespace IoUring.Test
         }
 
         [Fact]
+        public void TryRead()
+        {
+            using var r = new Ring(8);
+
+            uint i;
+            Completion c = default;
+            for (i = 0; i < 8; i++)
+            {
+                Assert.True(r.TryPrepareNop(i));
+                Assert.Equal(1u, r.Submit());
+                Assert.Equal(1u, r.Flush(1));
+
+                Assert.True(r.TryRead(ref c));
+                Assert.Equal(0, c.result);
+                Assert.Equal(i, c.userData);
+            }
+
+            Assert.False(r.TryRead(ref c));
+        }
+
+        [Fact]
         public void BlockingSingleRead()
         {
             using var r = new Ring(8);
