@@ -18,8 +18,8 @@ jobs:
     - name: Test
       run: dotnet test
     - name: Pack
-      if: github.event_name != 'pull_request'
-      run: dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
+      if: github.ref == 'refs/heads/master'
+      run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
     - name: Publish (MyGet)
-      if: github.event_name != 'pull_request'
+      if: github.ref == 'refs/heads/master'
       run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
