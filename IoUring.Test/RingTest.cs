@@ -83,7 +83,7 @@ namespace IoUring.Test
             {
                 Assert.True(r.TryPrepareNop(i));
                 Assert.Equal(1u, r.Submit());
-                Assert.Equal(1u, r.Flush(i));
+                Assert.Equal(1u, r.Flush(1));
 
                 Assert.True(r.TryRead(ref c));
                 Assert.Equal(0, c.result);
