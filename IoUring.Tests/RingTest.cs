@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using Xunit;
 
-namespace IoUring.Test
+namespace IoUring.Tests
 {
     public class RingTest
     {

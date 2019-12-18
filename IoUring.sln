@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring", "IoUring\IoUring.csproj", "{01069FE7-BBA2-4B44-86ED-25668456CAA8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Test", "IoUring.Test\IoUring.Test.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Tests", "IoUring.Tests\IoUring.Tests.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
