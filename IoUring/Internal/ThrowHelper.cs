@@ -13,6 +13,13 @@ namespace IoUring.Internal
         private static Exception NewErrnoException() 
             => new ErrnoException(errno);
 
+        public static void ThrowErrnoException(int errno)
+            => throw NewErrnoException(errno);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewErrnoException(int errno)
+            => new ErrnoException(errno);
+
         public static void ThrowSubmissionQueueFullException()
             => throw NewSubmissionQueueFullException();
 
@@ -33,5 +40,17 @@ namespace IoUring.Internal
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static Exception NewCompletionQueueOverflowException(long count)
             => new CompletionQueueOverflowException(count);
+
+        public static void ThrowArgumentNullException(ExceptionArgument argument) 
+            => throw NewArgumentNullException(argument);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewArgumentNullException(ExceptionArgument argument) 
+            => new ArgumentNullException(argument.ToString());
+
+        internal enum ExceptionArgument
+        {
+            continuation
+        }
     }
 }
