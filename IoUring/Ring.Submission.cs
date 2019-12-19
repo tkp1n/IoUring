@@ -37,8 +37,8 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = IORING_OP_NOP;
             sqe->user_data = userData;
@@ -160,8 +160,8 @@ namespace IoUring
         public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = IORING_OP_FSYNC;
             sqe->user_data = userData;
@@ -280,8 +280,8 @@ namespace IoUring
         public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = IORING_OP_POLL_ADD;
             sqe->user_data = userData;
@@ -316,8 +316,8 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPreparePollRemove(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = IORING_OP_POLL_REMOVE;
             sqe->user_data = userData;
@@ -366,8 +366,8 @@ namespace IoUring
             if (count > uint.MaxValue) throw new ArgumentOutOfRangeException(nameof(count), "must be less than 2^32");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = IORING_OP_SYNC_FILE_RANGE;
             sqe->user_data = userData;
@@ -455,8 +455,8 @@ namespace IoUring
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "must be non-negative");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = op;
             sqe->user_data = userData;
@@ -476,8 +476,8 @@ namespace IoUring
             if (index < 0) throw new ArgumentOutOfRangeException(nameof(index), "must be non-negative");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = op;
             sqe->user_data = userData;
@@ -496,8 +496,8 @@ namespace IoUring
         {
             if (flags < 0) throw new ArgumentOutOfRangeException(nameof(flags), "must be non-negative");
 
-            var sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL) return false;
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
             sqe->opcode = op;
             sqe->user_data = userData;
@@ -531,5 +531,21 @@ namespace IoUring
         /// <exception cref="ErrnoException">On negative result from syscall</exception>
         public uint Flush(uint toFlush, uint minComplete = 0)
             => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete);
+
+        private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
+        {
+            sqe = _sq.NextSubmissionQueueEntry();
+            if (sqe == NULL)
+            {
+                if (Flush(Submit()) > 0)
+                {
+                    // Flushed one more item, retry to get an entry
+                    sqe = _sq.NextSubmissionQueueEntry();
+                    if (sqe == NULL) return false;
+                }
+            }
+
+            return true;
+        }
     }
 }
