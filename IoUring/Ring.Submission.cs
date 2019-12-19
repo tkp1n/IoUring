@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using Tmds.Linux;
 using IoUring.Internal;
 using static Tmds.Linux.LibC;
@@ -38,7 +37,7 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_NOP;
@@ -161,7 +160,7 @@ namespace IoUring
         public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_FSYNC;
@@ -281,7 +280,7 @@ namespace IoUring
         public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
         {
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_POLL_ADD;
@@ -317,7 +316,7 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPreparePollRemove(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_POLL_REMOVE;
@@ -367,7 +366,7 @@ namespace IoUring
             if (count > uint.MaxValue) throw new ArgumentOutOfRangeException(nameof(count), "must be less than 2^32");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = IORING_OP_SYNC_FILE_RANGE;
@@ -456,7 +455,7 @@ namespace IoUring
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "must be non-negative");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = op;
@@ -477,7 +476,7 @@ namespace IoUring
             if (index < 0) throw new ArgumentOutOfRangeException(nameof(index), "must be non-negative");
             if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
 
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = op;
@@ -497,7 +496,7 @@ namespace IoUring
         {
             if (flags < 0) throw new ArgumentOutOfRangeException(nameof(flags), "must be non-negative");
 
-            io_uring_sqe* sqe = _sq.NextSubmissionQueueEntry();
+            var sqe = _sq.NextSubmissionQueueEntry();
             if (sqe == NULL) return false;
 
             sqe->opcode = op;

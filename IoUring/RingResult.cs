@@ -36,7 +36,7 @@ namespace IoUring
         /// <returns>A new instance of <see cref="RingResult"/></returns>
         internal static RingResult Create(PipeScheduler ioScheduler)
         {
-            var res = new RingResult(ioScheduler);
+            RingResult res = new RingResult(ioScheduler);
             res._handle = GCHandle.Alloc(res);
             return res;
         }
@@ -113,7 +113,7 @@ namespace IoUring
         internal void Complete(int result)
         {
             _result = result;
-            var continuation = Interlocked.Exchange(ref _callback, CallbackCompleted);
+            Action continuation = Interlocked.Exchange(ref _callback, CallbackCompleted);
 
             if (continuation != null)
             {

@@ -37,8 +37,8 @@ namespace IoUring
 
         private static (size_t sqSize, size_t cqSize) GetSize(io_uring_params* p)
         {
-            var sqSize = SqSize(p);
-            var cqSize = CqSize(p);
+            size_t sqSize = SqSize(p);
+            size_t cqSize = CqSize(p);
 
             if ((p->features & IORING_FEAT_SINGLE_MMAP) != 0)
             {
@@ -50,7 +50,7 @@ namespace IoUring
 
         private static SubmissionQueue MapSq(int ringFd, size_t sqSize, io_uring_params* p, out UnmapHandle sqHandle, out UnmapHandle sqeHandle)
         {
-            void* ptr = mmap(NULL, sqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQ_RING);
+            var ptr = mmap(NULL, sqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQ_RING);
             if (ptr == MAP_FAILED)
             {
                 ThrowErrnoException();
@@ -58,7 +58,7 @@ namespace IoUring
             sqHandle = new UnmapHandle(ptr, sqSize);
 
             size_t sqeSize = SqeSize(p);
-            void* sqePtr = mmap(NULL, sqeSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQES);
+            var sqePtr = mmap(NULL, sqeSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQES);
             if (sqePtr == MAP_FAILED)
             {
                 ThrowErrnoException();
