@@ -155,8 +155,7 @@ namespace IoUring.Internal
 
         public uint Flush(int ringFd, bool kernelIoPolling, uint toFlush, uint minComplete)
         {
-            // TODO: use throw helper
-            if (minComplete > toFlush) throw new ArgumentOutOfRangeException(nameof(minComplete), "must not be greater than toFlush");
+            if (minComplete > toFlush) ThrowArgumentOutOfRangeException(ExceptionArgument.minComplete);
 
             if (!ShouldFlush(kernelIoPolling, out uint enterFlags))
             {

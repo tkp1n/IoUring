@@ -48,9 +48,17 @@ namespace IoUring.Internal
         private static Exception NewArgumentNullException(ExceptionArgument argument) 
             => new ArgumentNullException(argument.ToString());
 
+        public static void ThrowArgumentOutOfRangeException(ExceptionArgument argument) 
+            => throw NewArgumentOutOfRangeException(argument);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewArgumentOutOfRangeException(ExceptionArgument argument)
+            => new ArgumentOutOfRangeException(argument.ToString());
+
         internal enum ExceptionArgument
         {
-            continuation
+            continuation,
+            minComplete
         }
     }
 }
