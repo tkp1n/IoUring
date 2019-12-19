@@ -115,7 +115,7 @@ namespace IoUring.Internal
 
         private bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result, bool bumpHead)
         {
-            var head = *_head;
+            uint head = *_head;
 
             // Try read from internal tail first to avoid memory barrier
             bool eventsAvailable = head != *_tailInternal;

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Tmds.Linux;
@@ -105,7 +104,7 @@ namespace IoUring.Internal
                 return (io_uring_sqe*) NULL;
             }
 
-            io_uring_sqe* sqe = &_sqes[_tailInternal & *_ringMask];
+            var sqe = &_sqes[_tailInternal & *_ringMask];
             _tailInternal = unchecked(_tailInternal + 1); // natural overflow of uint is desired
 
             // Handout cleaned sqe
