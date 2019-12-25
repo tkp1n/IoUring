@@ -17,7 +17,7 @@ namespace IoUring
         public void RegisterBuffers(iovec* iov, int iovcnt)
         {
             if (iovcnt < 0) throw new ArgumentOutOfRangeException(nameof(iovcnt), "must be non-negative");
-            Register(IORING_REGISTER_FILES, iov, (uint) iovcnt);
+            Register(IORING_REGISTER_BUFFERS, iov, (uint) iovcnt);
         }
 
         /// <summary>
