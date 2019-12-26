@@ -5,7 +5,7 @@ using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
 using static IoUring.Internal.ThrowHelper;
 
-namespace IoUring 
+namespace IoUring
 {
     public unsafe partial class Ring
     {
@@ -58,10 +58,9 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> or <paramref name="offset"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareReadV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0, 
+            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareReadV(fd, iov, count, offset, flags, userData, options))
@@ -82,7 +81,6 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> or <paramref name="offset"/> is negative</exception>
         public bool TryPrepareReadV(
             int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
@@ -99,7 +97,6 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> or <paramref name="offset"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareWriteV(
             int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
@@ -123,10 +120,9 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> or <paramref name="offset"/> is negative</exception>
         public bool TryPrepareWriteV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0, 
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
+            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWrite(IORING_OP_WRITEV, fd, iov, count, offset, flags, userData, options);
 
         /// <summary>
@@ -183,7 +179,6 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into buffer (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/>, <paramref name="index"/> or <paramref name="offset"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareRead(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
@@ -206,9 +201,8 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/>, <paramref name="index"/> or <paramref name="offset"/> is negative</exception>
         public bool TryPrepareRead(int fd, void* buf, size_t count, int index, off_t offset = default,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWriteFixed(IORING_OP_READ_FIXED, fd, buf, count, index, offset, userData, options);
 
         /// <summary>
@@ -222,7 +216,6 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into buffer (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/>, <paramref name="index"/> or <paramref name="offset"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareWrite(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
@@ -245,7 +238,6 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/>, <paramref name="index"/> or <paramref name="offset"/> is negative</exception>
         public bool TryPrepareWrite(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWriteFixed(IORING_OP_WRITE_FIXED, fd, buf, count, index, offset, userData, options);
@@ -336,10 +328,8 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per sync_file_range)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="offset"/> or <paramref name="count"/> is negative</exception>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> is not less than 2^32</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareSyncFileRange(fd, offset, count, flags, userData, options))
             {
@@ -358,24 +348,21 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="offset"/> or <paramref name="count"/> is negative</exception>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="count"/> is not less than 2^32</exception>
-        public bool TryPrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+        public bool TryPrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "must be non-negative");
-            if (count > uint.MaxValue) throw new ArgumentOutOfRangeException(nameof(count), "must be less than 2^32");
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
-
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = IORING_OP_SYNC_FILE_RANGE;
-            sqe->user_data = userData;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->len = (uint) count;
-            sqe->off = (ulong)(long) offset;
-            sqe->sync_range_flags = flags;
+            unchecked
+            {
+                sqe->opcode = IORING_OP_SYNC_FILE_RANGE;
+                sqe->user_data = userData;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->len = (uint) count;
+                sqe->off = (ulong) (long) offset;
+                sqe->sync_range_flags = flags;
+            }
 
             return true;
         }
@@ -389,7 +376,6 @@ namespace IoUring
         /// <param name="flags">Flags for the operator (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="flags"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareSendMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
@@ -410,7 +396,6 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="flags"/> is negative</exception>
         public bool TryPrepareSendMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
             => TryPrepareSendRecvMsg(IORING_OP_SENDMSG, fd, msg, flags, userData, options);
@@ -424,7 +409,6 @@ namespace IoUring
         /// <param name="flags">Flags for the operator (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="flags"/> is negative</exception>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareRecvMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
@@ -445,48 +429,46 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="flags"/> is negative</exception>
         public bool TryPrepareRecvMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
             SubmissionOption options = SubmissionOption.None)
             => TryPrepareSendRecvMsg(IORING_OP_RECVMSG, fd, msg, flags, userData, options);
-   
+
         private bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "must be non-negative");
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
-
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = op;
-            sqe->user_data = userData;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->addr = (ulong) iov;
-            sqe->len = (uint) count;
-            sqe->off = (ulong)(long) offset;
-            sqe->rw_flags = flags;
+            unchecked
+            {
+                sqe->opcode = op;
+                sqe->user_data = userData;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->addr = (ulong) iov;
+                sqe->len = (uint) count;
+                sqe->off = (ulong) (long) offset;
+                sqe->rw_flags = flags;
+            }
 
             return true;
         }
 
         private bool TryPrepareReadWriteFixed(byte op, int fd, void* buf, size_t count, int index, off_t offset, ulong userData, SubmissionOption options)
-        {            
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "must be non-negative");
-            if (index < 0) throw new ArgumentOutOfRangeException(nameof(index), "must be non-negative");
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "must be non-negative");
-
+        {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = op;
-            sqe->user_data = userData;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->addr = (ulong) buf;
-            sqe->len = (uint) count;
-            sqe->off = (ulong)(long) offset;
-            sqe->buf_index = (ushort) index;
+            unchecked
+            {
+                sqe->opcode = op;
+                sqe->user_data = userData;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->addr = (ulong) buf;
+                sqe->len = (uint) count;
+                sqe->off = (ulong) (long) offset;
+                sqe->buf_index = (ushort) index;
+            }
 
             return true;
         }
@@ -494,18 +476,19 @@ namespace IoUring
         private bool TryPrepareSendRecvMsg(byte op, int fd, msghdr* msg, int flags, ulong userData,
             SubmissionOption options)
         {
-            if (flags < 0) throw new ArgumentOutOfRangeException(nameof(flags), "must be non-negative");
-
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = op;
-            sqe->user_data = userData;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->addr = (ulong) msg;
-            sqe->len = 1;
-            sqe->msg_flags = (uint) flags;
+            unchecked
+            {
+                sqe->opcode = op;
+                sqe->user_data = userData;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->addr = (ulong) msg;
+                sqe->len = 1;
+                sqe->msg_flags = (uint) flags;
+            }
 
             return true;
         }
@@ -521,7 +504,7 @@ namespace IoUring
 
         /// <summary>
         /// Notifies the kernel of the availability of new Submission Queue Entries.
-        /// This typically requires a syscall and should be deferred as long as possible. 
+        /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
         /// <param name="toFlush">Number of un-flushed Submission Queue Entries</param>
         /// <param name="minComplete">The number of completed Submission Queue Entries required before returning (default = 0)</param>
