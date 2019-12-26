@@ -10,7 +10,7 @@ namespace IoUring.Internal
             => throw NewErrnoException();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static Exception NewErrnoException() 
+        private static Exception NewErrnoException()
             => new ErrnoException(errno);
 
         public static void ThrowErrnoException(int errno)
@@ -34,21 +34,21 @@ namespace IoUring.Internal
         private static Exception NewSubmissionEntryDroppedException(long count)
             => new SubmissionEntryDroppedException(count);
 
-        public static void ThrowOverflowException(long count) 
+        public static void ThrowOverflowException(long count)
             => throw NewCompletionQueueOverflowException(count);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static Exception NewCompletionQueueOverflowException(long count)
             => new CompletionQueueOverflowException(count);
 
-        public static void ThrowArgumentNullException(ExceptionArgument argument) 
+        public static void ThrowArgumentNullException(ExceptionArgument argument)
             => throw NewArgumentNullException(argument);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static Exception NewArgumentNullException(ExceptionArgument argument) 
+        private static Exception NewArgumentNullException(ExceptionArgument argument)
             => new ArgumentNullException(argument.ToString());
 
-        public static void ThrowArgumentOutOfRangeException(ExceptionArgument argument) 
+        public static void ThrowArgumentOutOfRangeException(ExceptionArgument argument)
             => throw NewArgumentOutOfRangeException(argument);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -58,7 +58,14 @@ namespace IoUring.Internal
         internal enum ExceptionArgument
         {
             continuation,
-            minComplete
+            count,
+            exception,
+            flags,
+            handle,
+            index,
+            ioScheduler,
+            minComplete,
+            offset
         }
     }
 }
