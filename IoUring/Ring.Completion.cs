@@ -15,7 +15,7 @@ namespace IoUring
         /// <returns>Whether a Completion Queue Event was observed</returns>
         /// <exception cref="ErrnoException">If a syscall failed</exception>
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
-        public bool TryRead(ref Completion result) 
+        public bool TryRead(ref Completion result)
             => _cq.TryRead(_ringFd.DangerousGetHandle().ToInt32(), IoPollingEnabled, ref result);
 
         /// <summary>

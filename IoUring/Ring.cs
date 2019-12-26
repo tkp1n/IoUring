@@ -119,6 +119,9 @@ namespace IoUring
                 Dispose();
                 throw;
             }
+
+            SubmissionQueueSize = (int) sqSize;
+            CompletionQueueSize = (int) cqSize;
         }
 
         /// <summary>
@@ -135,6 +138,16 @@ namespace IoUring
         /// Whether the kernel to polls for I/O completions (instead of using interrupt driven I/O).
         /// </summary>
         public bool IoPollingEnabled => (_flags & IORING_SETUP_IOPOLL) != 0;
+
+        /// <summary>
+        /// Returns the maximum number of events the Submission Queue can contain 
+        /// </summary>
+        public int SubmissionQueueSize { get; }
+
+        /// <summary>
+        /// Returns the maximum number of events the Completion Queue can contain 
+        /// </summary>
+        public int CompletionQueueSize { get; }
 
         /// <inheritdoc cref="IDisposable"/>
         public void Dispose()
