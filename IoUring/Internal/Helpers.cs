@@ -12,14 +12,5 @@ namespace IoUring.Internal
         {
             return (T*) ((IntPtr) a + (int) b);
         }
-
-        public static void VerifyPowerOfTwo(int a, string paramName, string message)
-        {
-            uint ua = (uint) a;
-            if ((ua & (ua - 1)) != 0)
-            {
-                throw new ArgumentOutOfRangeException(paramName, message);
-            }
-        }
     }
 }
