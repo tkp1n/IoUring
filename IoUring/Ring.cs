@@ -96,7 +96,6 @@ namespace IoUring
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) throw new PlatformNotSupportedException();
             if (entries < 1) throw new ArgumentOutOfRangeException(nameof(entries), "must be between 1..4096 (both inclusive)");
             if (entries > 4096) throw new ArgumentOutOfRangeException(nameof(entries), "must be between 1..4096 (both inclusive)");
-            VerifyPowerOfTwo(entries, nameof(entries), "must be a power of two");
 
             io_uring_params p = default;
             int fd = Setup((uint) entries, &p, ringOptions);

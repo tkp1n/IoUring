@@ -62,15 +62,8 @@ namespace IoUring
 
             if (CompletionQueueSize >= 0)
             {
-                CheckPowerOfTwo(CompletionQueueSize);
                 p->cq_entries = (uint) CompletionQueueSize;
             }
-        }
-
-        private static void CheckPowerOfTwo(int value)
-        {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), "not a non-zero positive value");
-            Helpers.VerifyPowerOfTwo(value, nameof(value), "not a power of two");
         }
     }
 }
