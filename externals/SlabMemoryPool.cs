@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading;
-using IoUring;
 
 namespace System.Buffers
 {
@@ -51,7 +50,7 @@ namespace System.Buffers
         /// Thread-safe collection of slabs which have been allocated by this pool. As long as a slab is in this collection and slab.IsActive,
         /// the blocks will be added to _blocks when returned.
         /// </summary>
-        private readonly RegisteredSlabList _slabs;
+        private readonly ConcurrentStack<MemoryPoolSlab> _slabs = new ConcurrentStack<MemoryPoolSlab>();
 
         /// <summary>
         /// This is part of implementing the IDisposable pattern.
@@ -67,11 +66,6 @@ namespace System.Buffers
         /// </summary>
         private const int AnySize = -1;
 
-        public SlabMemoryPool(Ring ring)
-        {
-            _slabs = new RegisteredSlabList(ring);
-        }
-        
         public override IMemoryOwner<byte> Rent(int size = AnySize)
         {
             if (size > _blockSize)
