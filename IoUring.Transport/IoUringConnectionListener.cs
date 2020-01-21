@@ -42,7 +42,7 @@ namespace IoUring.Transport
             }
         }
 
-        public ValueTask<ConnectionContext> AcceptAsync(CancellationToken cancellationToken = default) => 
+        public ValueTask<ConnectionContext> AcceptAsync(CancellationToken cancellationToken = default) =>
             _acceptQueue.ReadAsync(cancellationToken);
 
         public ValueTask UnbindAsync(CancellationToken cancellationToken = default)

@@ -12,7 +12,7 @@ namespace IoUring
     public class CompletionQueueOverflowException : Exception
     {
         /// <summary>
-        /// The number of overflowed Events 
+        /// The number of overflowed Events
         /// </summary>
         public long Overflow { get; }
 

@@ -20,7 +20,7 @@ namespace IoUring.Transport
         private const int PauseOutputWriterThreshold = 64 * 1024;
 
         private readonly Action _onOnFlushedToApp;
-        
+
         private readonly iovec* _iovec;
         private GCHandle _iovecHandle;
 
@@ -39,9 +39,9 @@ namespace IoUring.Transport
 
             Transport = pair.Transport;
             Application = pair.Application;
-            
+
             _onOnFlushedToApp = FlushedToApp;
-            
+
             iovec[] vecs = new iovec[ReadIOVecCount + WriteIOVecCount];
             var handle = GCHandle.Alloc(vecs, GCHandleType.Pinned);
             _iovec = (iovec*) handle.AddrOfPinnedObject();
@@ -60,13 +60,13 @@ namespace IoUring.Transport
         public MemoryHandle[] WriteHandles { get; } = new MemoryHandle[WriteIOVecCount];
 
         public ReadOnlySequence<byte> LastWrite { get; set; }
-        
+
         public PipeWriter Input => Application.Output;
 
         public PipeReader Output => Application.Input;
 
         public ValueTask<FlushResult> FlushResult { get; set; }
-        
+
         public Action OnFlushedToApp => _onOnFlushedToApp;
 
         public void FlushedToApp()
@@ -75,7 +75,7 @@ namespace IoUring.Transport
             // TODO: handle result
 
             ShouldRead = true;
-        }   
+        }
 
         public override ValueTask DisposeAsync()
         {
@@ -83,8 +83,8 @@ namespace IoUring.Transport
                 _iovecHandle.Free();
             return base.DisposeAsync();
         }
-        
-        
+
+
         internal class DuplexPipe : IDuplexPipe
         {
             public DuplexPipe(PipeReader reader, PipeWriter writer)

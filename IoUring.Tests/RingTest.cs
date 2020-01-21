@@ -7,7 +7,7 @@ namespace IoUring.Tests
     public class RingTest
     {
         [Fact]
-        public void SmokeTest() 
+        public void SmokeTest()
         {
             var r = new Ring(8);
             Assert.NotNull(r);
