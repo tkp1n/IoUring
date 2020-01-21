@@ -24,7 +24,7 @@
 
     <ItemGroup>
       <PackageReference Include="System.IO.Pipelines" Version="4.7.0" />
-      <PackageReference Include="Tmds.LibC" Version="0.3.0-191113-181" />
+      <PackageReference Include="Tmds.LibC" Version="0.3.0-200121-184" />
     </ItemGroup>
 
     <ItemGroup>
