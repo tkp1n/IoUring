@@ -18,7 +18,7 @@ namespace IoUring
         /// Ignored if value is negative, or <see cref="EnableSubmissionPolling"/> is false.
         /// </summary>
         public int SubmissionQueuePollingCpuAffinity { get; set; } = -1;
-        
+
         /// <summary>
         /// The amount of time without I/O before the Submission Queue polling thread goes idle.
         /// The kernel defaults to one second of idle time before putting the thread to sleep.

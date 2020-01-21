@@ -10,7 +10,7 @@ namespace IoUring.Transport
     internal readonly struct LinuxSocket
     {
         private readonly int _fd;
-        
+
         public LinuxSocket(int fd)
         {
             _fd = fd;
@@ -29,7 +29,7 @@ namespace IoUring.Transport
             var rv = bind(_fd, (sockaddr*) &addr, length);
             if (rv < 0) throw new ErrnoException(errno);
         }
-        
+
         public void Listen(int backlog)
         {
             var rv = listen(_fd, backlog);

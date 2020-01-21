@@ -8,7 +8,7 @@ namespace IoUring
     public class ErrnoException : Exception
     {
         public int Errno { get; }
-        
+
         public ErrnoException(int errno) : base($"ERRNO: {errno}")
         {
             Errno = errno;

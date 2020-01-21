@@ -26,13 +26,13 @@ namespace IoUring
             return fd;
         }
 
-        private static size_t SqSize(io_uring_params* p) 
+        private static size_t SqSize(io_uring_params* p)
             =>  p->sq_off.array + p->sq_entries * sizeof(uint);
 
         private static size_t SqeSize(io_uring_params* p)
             => (size_t) (p->sq_entries * (ulong) sizeof(io_uring_sqe));
 
-        private static size_t CqSize(io_uring_params* p) 
+        private static size_t CqSize(io_uring_params* p)
             => (size_t)(p->cq_off.cqes + p->cq_entries * (ulong)sizeof(io_uring_cqe));
 
         private static (size_t sqSize, size_t cqSize) GetSize(io_uring_params* p)
@@ -64,7 +64,7 @@ namespace IoUring
                 ThrowErrnoException();
             }
             sqeHandle = new UnmapHandle(sqePtr, sqeSize);
-            
+
             return SubmissionQueue.CreateSubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr);
         }
 
@@ -138,12 +138,12 @@ namespace IoUring
         public bool IoPollingEnabled => (_flags & IORING_SETUP_IOPOLL) != 0;
 
         /// <summary>
-        /// Returns the maximum number of events the Submission Queue can contain 
+        /// Returns the maximum number of events the Submission Queue can contain
         /// </summary>
         public int SubmissionQueueSize { get; }
 
         /// <summary>
-        /// Returns the maximum number of events the Completion Queue can contain 
+        /// Returns the maximum number of events the Completion Queue can contain
         /// </summary>
         public int CompletionQueueSize { get; }
 

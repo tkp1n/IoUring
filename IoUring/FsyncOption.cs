@@ -9,7 +9,7 @@ namespace IoUring
         /// Meet requirements for synchronized I/O file integrity completion.
         /// </summary>
         FileIntegrity = 0,
-        
+
         /// <summary>
         /// Meet requirements for synchronized I/O data integrity completion.
         /// </summary>

@@ -10,7 +10,7 @@ namespace IoUring.Transport
         public static IWebHostBuilder UseIoUring(this IWebHostBuilder builder) =>
             builder.ConfigureServices(services => services.AddSingleton<IConnectionListenerFactory, IoUringConnectionListenerFactory>());
 
-        public static IWebHostBuilder UseIoUring(this IWebHostBuilder builder, Action<IoUringOptions> options) => 
+        public static IWebHostBuilder UseIoUring(this IWebHostBuilder builder, Action<IoUringOptions> options) =>
             builder.UseIoUring().ConfigureServices(services => services.Configure(options));
     }
 }

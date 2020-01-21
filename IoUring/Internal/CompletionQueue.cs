@@ -15,7 +15,7 @@ namespace IoUring.Internal
         private uint* _head;
 
         /// <summary>
-        /// Incremented by the kernel to let the application know about another Completion Queue Event. 
+        /// Incremented by the kernel to let the application know about another Completion Queue Event.
         /// </summary>
         private uint* _tail;
 
@@ -31,7 +31,7 @@ namespace IoUring.Internal
 
         /// <summary>
         /// Incremented by the kernel on each overwritten Completion Queue Event.
-        /// This is a sign, that the application is producing Submission Queue Events faster as it handles the corresponding Completion Queue Events. 
+        /// This is a sign, that the application is producing Submission Queue Events faster as it handles the corresponding Completion Queue Events.
         /// </summary>
         private uint* _overflow;
 
@@ -154,7 +154,7 @@ namespace IoUring.Internal
             if (bumpHead)
             {
                 // ensure the kernel can take notice of us consuming the Events
-                Volatile.Write(ref *_head, *_headInternal); 
+                Volatile.Write(ref *_head, *_headInternal);
             }
 
             return true;

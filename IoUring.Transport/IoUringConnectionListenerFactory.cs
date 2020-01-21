@@ -18,7 +18,7 @@ namespace IoUring.Transport
             _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         }
-        
+
         public ValueTask<IConnectionListener> BindAsync(EndPoint endpoint, CancellationToken cancellationToken = default)
         {
             var listener = new IoUringConnectionListener(endpoint, _options, _loggerFactory);

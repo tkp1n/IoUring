@@ -148,7 +148,7 @@ namespace IoUring.Internal
                 return false;
             }
 
-            // If the kernel is not polling, we have to notify    
+            // If the kernel is not polling, we have to notify
             return true;
         }
 

@@ -57,7 +57,7 @@ namespace IoUring.Transport
                     Read(socket, context);
                     Write(socket, context);
                 }
-                
+
                 Flush();
                 Complete();
             }
@@ -119,10 +119,10 @@ namespace IoUring.Transport
         private unsafe void Write(LinuxSocket socket, IoUringConnectionContext context)
         {
             if (!context.ShouldWrite) return;
-            
+
             var reader = context.Output;
             if (!reader.TryRead(out var result)) return;
-            
+
             // TODO: handle completed / cancelled
 
             var writeHandles = context.WriteHandles;
@@ -137,7 +137,7 @@ namespace IoUring.Transport
                 writeVecs[ctr].iov_len = memory.Length;
 
                 writeHandles[ctr] = handle;
-                
+
                 ctr++;
                 if (ctr == IoUringConnectionContext.WriteIOVecCount) break;
             }
