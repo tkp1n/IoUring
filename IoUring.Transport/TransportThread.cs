@@ -16,7 +16,7 @@ namespace IoUring.Transport
         private const int ListenBacklog = 128;
         private const ulong ReadMask =  0x100000000UL;
         private const ulong WriteMask = 0x200000000UL;
-        private const ulong PollMask =  0x400000000UL;
+        private const ulong ReadPollMask =  0x400000000UL;
         private const ulong AcceptPollMask =  0x800000000UL;
 
         private readonly Ring _ring;
@@ -76,7 +76,7 @@ namespace IoUring.Transport
         private void Poll(LinuxSocket socket, IoUringConnectionContext context)
         {
             if (!context.ShouldPoll) return;
-            _ring.PreparePollAdd(socket, (ushort) POLLIN, (ulong) (int) socket | PollMask);
+            _ring.PreparePollAdd(socket, (ushort) POLLIN, Mask(socket, ReadPollMask));
             context.ShouldPoll = false;
         }
 
@@ -123,7 +123,7 @@ namespace IoUring.Transport
             }
 
             var vecsTotal = iovs + (remainder > 0 ? 1 : 0);
-            _ring.PrepareReadV(socket, readVecs, vecsTotal, 0, 0, ((ulong)(int)socket) | ReadMask);
+            _ring.PrepareReadV(socket, readVecs, vecsTotal, 0, 0, Mask(socket, ReadMask));
             context.ReadVecsLength = vecsTotal;
         }
 
@@ -160,7 +160,7 @@ namespace IoUring.Transport
 
             context.LastWrite = buffer;
             context.ShouldWrite = false;
-            _ring.PrepareWriteV(socket, writeVecs ,ctr, 0 ,0, (ulong)(int)socket | WriteMask);
+            _ring.PrepareWriteV(socket, writeVecs ,ctr, 0 ,0, Mask(socket, WriteMask));
         }
 
         private void Flush() => _ring.Flush(_ring.Submit(), 1);
@@ -176,9 +176,9 @@ namespace IoUring.Transport
                     CompleteAcceptPoll();
                 }
                 if (!_connections.TryGetValue(socket, out var context)) continue;
-                if ((c.userData & PollMask) == PollMask)
+                if ((c.userData & ReadPollMask) == ReadPollMask)
                 {
-                    CompletePoll(socket, context, c.result);
+                    CompleteReadPoll(socket, context, c.result);
                 }
                 else if ((c.userData & ReadMask) == ReadMask)
                 {
@@ -214,7 +214,7 @@ namespace IoUring.Transport
             Accept();
         }
         
-        private void CompletePoll(LinuxSocket socket, IoUringConnectionContext context, int result)
+        private void CompleteReadPoll(LinuxSocket socket, IoUringConnectionContext context, int result)
         {
             if (result >= 0)
             {
@@ -272,7 +272,7 @@ namespace IoUring.Transport
                 else if (result < context.ReadableBytes)
                 {
                     context.ReadableBytes -= result;
-                    _ring.PrepareReadV(socket, context.ReadVecs, context.ReadVecsLength, result, 0, (ulong)socket | ReadMask);
+                    _ring.PrepareReadV(socket, context.ReadVecs, context.ReadVecsLength, result, 0, Mask(socket, ReadMask));
                 }
             }
             else if (result < 0)
@@ -304,6 +304,12 @@ namespace IoUring.Transport
             {
                 throw new ErrnoException(-result);
             }
+        }
+
+        private static ulong Mask(int socket, ulong mask)
+        {
+            var socketUl = (ulong)socket;
+            return socketUl | mask;
         }
     }
 }
