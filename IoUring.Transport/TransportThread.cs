@@ -1,3 +1,4 @@
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
@@ -13,8 +14,9 @@ namespace IoUring.Transport
     {
         private const int RingSize = 64;
         private const int ListenBacklog = 128;
-        private const ulong ReadMask = 0x100000000UL;
+        private const ulong ReadMask =  0x100000000UL;
         private const ulong WriteMask = 0x200000000UL;
+        private const ulong PollMask =  0x400000000UL;
 
         private readonly Ring _ring;
         private readonly IPEndPoint _endPoint;
@@ -54,6 +56,7 @@ namespace IoUring.Transport
 
                 foreach (var (socket, context) in _connections)
                 {
+                    Poll(socket, context);
                     Read(socket, context);
                     Write(socket, context);
                 }
@@ -86,34 +89,64 @@ namespace IoUring.Transport
                 }
             }
 
-            IoUringConnectionContext ctx = new IoUringConnectionContext(_endPoint, endPoint, _memoryPool);
+            IoUringConnectionContext context = new IoUringConnectionContext(_endPoint, endPoint, _memoryPool);
 
-            // TODO: create connection context
+            _connections[socket] = context;
+            _acceptQueue.TryWrite(context);
+        }
 
-            _connections[socket] = ctx;
-            _acceptQueue.TryWrite(ctx);
+        private void Poll(LinuxSocket socket, IoUringConnectionContext context)
+        {
+            if (!context.ShouldPoll) return;
+            _ring.PreparePollAdd(socket, (ushort) POLLIN, (ulong) (int) socket | PollMask);
+            context.ShouldPoll = false;
         }
 
         private unsafe void Read(LinuxSocket socket, IoUringConnectionContext context)
         {
-            if (!context.ShouldRead) return;
+            var readableBytes = context.ReadableBytes;
+            if (readableBytes == 0) return;
+
+            var maxBufferSize = _memoryPool.MaxBufferSize;
+            var iovs = Math.DivRem(readableBytes, maxBufferSize, out var remainder);
+            if (iovs >= IoUringConnectionContext.ReadIOVecCount)
+            {
+                iovs = IoUringConnectionContext.ReadIOVecCount;
+                remainder = 0;
+            }
 
             var writer = context.Input;
             var readHandles = context.ReadHandles;
             var readVecs = context.ReadVecs;
-            for (int i = 0; i < IoUringConnectionContext.ReadIOVecCount; i++)
+            int i;
+            for (i = 0; i < iovs; i++)
             {
-                var memory = writer.GetMemory();
-                var handle = memory.Pin(); // will be unpinned when read completes
+                var memory = writer.GetMemory(maxBufferSize);
+                var handle = memory.Pin();
 
                 readVecs[i].iov_base = handle.Pointer;
                 readVecs[i].iov_len = memory.Length;
 
                 readHandles[i] = handle;
+                
+                writer.Advance(maxBufferSize);
             }
 
-            context.ShouldRead = false; // pause reading while the currently prepared op is in progress
-            _ring.PrepareReadV(socket, readVecs, IoUringConnectionContext.ReadIOVecCount, 0, 0, ((ulong)(int)socket) | ReadMask);
+            if (remainder > 0)
+            {
+                var memory = writer.GetMemory(remainder);
+                var handle = memory.Pin();
+
+                readVecs[i].iov_base = handle.Pointer;
+                readVecs[i].iov_len = memory.Length;
+
+                readHandles[i] = handle;  
+                writer.Advance(remainder);
+            }
+
+            var vecsTotal = iovs + (remainder > 0 ? 1 : 0);
+            _ring.PrepareReadV(socket, readVecs, vecsTotal, 0, 0, ((ulong)(int)socket) | ReadMask);
+            context.ReadVecsLength = vecsTotal;
         }
 
         private unsafe void Write(LinuxSocket socket, IoUringConnectionContext context)
@@ -123,7 +156,12 @@ namespace IoUring.Transport
             var reader = context.Output;
             if (!reader.TryRead(out var result)) return;
 
-            // TODO: handle completed / cancelled
+            if (result.IsCanceled || result.IsCompleted)
+            {
+                context.DisposeAsync();
+                _connections.Remove(socket);
+                socket.Close();
+            }
 
             var writeHandles = context.WriteHandles;
             var writeVecs = context.WriteVecs;
@@ -155,10 +193,14 @@ namespace IoUring.Transport
             while (_ring.TryRead(ref c))
             {
                 var socket = (int)c.userData;
-                var context = _connections[socket];
-                if ((c.userData & ReadMask) == ReadMask)
+                if (!_connections.TryGetValue(socket, out var context)) continue;
+                if ((c.userData & PollMask) == PollMask)
                 {
-                    CompleteRead(context, c.result);
+                    CompletePoll(socket, context, c.result);
+                }
+                else if ((c.userData & ReadMask) == ReadMask)
+                {
+                    CompleteRead(socket, context, c.result);
                 }
                 else if ((c.userData & WriteMask) == WriteMask)
                 {
@@ -167,36 +209,73 @@ namespace IoUring.Transport
             }
         }
 
-        private static void CompleteRead(IoUringConnectionContext context, int result)
+        private void CompletePoll(LinuxSocket socket, IoUringConnectionContext context, int result)
         {
-            var readHandles = context.ReadHandles;
-            for (int i = 0; i < readHandles.Length; i++)
+            if (result >= 0)
             {
-                readHandles[i].Dispose();
+                var readableBytes = socket.GetReadableBytes();
+                if (readableBytes > 0)
+                {
+                    context.ReadableBytes = readableBytes;
+                }
+                else
+                {
+                    context.ShouldPoll = true;
+                }
+            }
+            else
+            {
+                int err = errno;
+                if (err == EAGAIN || err == EINTR)
+                {
+                    context.ShouldPoll = true;
+                }
+
+                throw new ErrnoException(err);
+            } 
+        }
+
+        private unsafe void CompleteRead(int socket, IoUringConnectionContext context, int result)
+        {
+            static void Flush(IoUringConnectionContext ctx)
+            {
+                var flushResult = ctx.Input.FlushAsync();
+                ctx.FlushResult = flushResult;
+                if (flushResult.IsCompleted)
+                {
+                    ctx.FlushedToApp();
+                }
+                else
+                {
+                    flushResult.GetAwaiter().UnsafeOnCompleted(ctx.OnFlushedToApp);
+                }
             }
 
             if (result > 0)
             {
-                context.Input.Advance(result);
-                var flushResult = context.Input.FlushAsync();
-                context.FlushResult = flushResult;
-                if (flushResult.IsCompleted)
+                if (result == context.ReadableBytes)
                 {
-                    context.FlushedToApp();
+                    var readHandles = context.ReadHandles;
+                    for (int i = 0; i < readHandles.Length; i++)
+                    {
+                        readHandles[i].Dispose();
+                    }
+
+                    // we read everything
+                    Flush(context);
                 }
-                else
+                else if (result < context.ReadableBytes)
                 {
-                    flushResult.GetAwaiter().UnsafeOnCompleted(context.OnFlushedToApp);
+                    context.ReadableBytes -= result;
+                    _ring.PrepareReadV(socket, context.ReadVecs, context.ReadVecsLength, result, 0, (ulong)socket | ReadMask);
                 }
             }
             else if (result < 0)
             {
-                if (-result != EAGAIN)
+                if (-result != EAGAIN || -result != EWOULDBLOCK)
                 {
                     throw new ErrnoException(-result);
                 }
-
-                context.ShouldRead = true;
             }
         }
 

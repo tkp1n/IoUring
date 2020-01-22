@@ -32,8 +32,8 @@ namespace IoUring.Transport
             MemoryPool = pool;
 
             var appScheduler = PipeScheduler.ThreadPool; // TODO: configure
-            var inputOptions = new PipeOptions(MemoryPool, PipeScheduler.ThreadPool, PipeScheduler.Inline, PauseInputWriterThreshold, PauseInputWriterThreshold / 2, useSynchronizationContext: false);
-            var outputOptions = new PipeOptions(MemoryPool, PipeScheduler.Inline, PipeScheduler.ThreadPool, PauseOutputWriterThreshold, PauseOutputWriterThreshold / 2, useSynchronizationContext: false);
+            var inputOptions = new PipeOptions(MemoryPool, appScheduler, PipeScheduler.Inline, PauseInputWriterThreshold, PauseInputWriterThreshold / 2, useSynchronizationContext: false);
+            var outputOptions = new PipeOptions(MemoryPool, PipeScheduler.Inline, appScheduler, PauseOutputWriterThreshold, PauseOutputWriterThreshold / 2, useSynchronizationContext: false);
 
             var pair = DuplexPipe.CreateConnectionPair(inputOptions, outputOptions);
 
@@ -46,11 +46,15 @@ namespace IoUring.Transport
             var handle = GCHandle.Alloc(vecs, GCHandleType.Pinned);
             _iovec = (iovec*) handle.AddrOfPinnedObject();
             _iovecHandle = handle;
+
+            ShouldPoll = true;
         }
 
         public override MemoryPool<byte> MemoryPool { get; }
 
-        public bool ShouldRead { get; set; } = true;
+        public bool ShouldPoll { get; set; }
+        public int ReadableBytes { get; set; }
+        public int ReadVecsLength { get; set; }
         public bool ShouldWrite { get; set; } = true;
 
         public iovec* ReadVecs => _iovec;
@@ -73,12 +77,12 @@ namespace IoUring.Transport
         {
             var flushResult = FlushResult;
             // TODO: handle result
-
-            ShouldRead = true;
+            ShouldPoll = true;
         }
 
         public override ValueTask DisposeAsync()
         {
+            // TODO: close pipes?
             if (_iovecHandle.IsAllocated)
                 _iovecHandle.Free();
             return base.DisposeAsync();
