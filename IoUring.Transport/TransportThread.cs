@@ -17,6 +17,7 @@ namespace IoUring.Transport
         private const ulong ReadMask =  0x100000000UL;
         private const ulong WriteMask = 0x200000000UL;
         private const ulong PollMask =  0x400000000UL;
+        private const ulong AcceptPollMask =  0x800000000UL;
 
         private readonly Ring _ring;
         private readonly IPEndPoint _endPoint;
@@ -68,31 +69,7 @@ namespace IoUring.Transport
 
         private void Accept()
         {
-            // TODO: accept using io_uring, once support landed in mainstream kernels
-            // TODO: In the meantime, accept using epoll?
-            var socket = _acceptSocket.Accept(out var endPoint);
-            if (socket == -1)
-            {
-                if (_connections.Count == 0)
-                {
-                    // We don't have a connection yet to take care of -> spin wait until we have one
-                    var wait = new SpinWait();
-                    while ((socket = _acceptSocket.Accept(out var en)) == -1)
-                    {
-                        wait.SpinOnce();
-                    }
-                }
-                else
-                {
-                    // No additional connections -> don't care
-                    return;
-                }
-            }
-
-            IoUringConnectionContext context = new IoUringConnectionContext(_endPoint, endPoint, _memoryPool);
-
-            _connections[socket] = context;
-            _acceptQueue.TryWrite(context);
+            _ring.PreparePollAdd(_acceptSocket, (ushort) POLLIN, AcceptPollMask);
         }
 
         private void Poll(LinuxSocket socket, IoUringConnectionContext context)
@@ -185,7 +162,7 @@ namespace IoUring.Transport
             _ring.PrepareWriteV(socket, writeVecs ,ctr, 0 ,0, (ulong)(int)socket | WriteMask);
         }
 
-        private void Flush() => _ring.Flush(_ring.Submit());
+        private void Flush() => _ring.Flush(_ring.Submit(), 1);
 
         private void Complete()
         {
@@ -193,6 +170,10 @@ namespace IoUring.Transport
             while (_ring.TryRead(ref c))
             {
                 var socket = (int)c.userData;
+                if ((c.userData & AcceptPollMask) == AcceptPollMask)
+                {
+                    CompleteAcceptPoll();
+                }
                 if (!_connections.TryGetValue(socket, out var context)) continue;
                 if ((c.userData & PollMask) == PollMask)
                 {
@@ -209,6 +190,21 @@ namespace IoUring.Transport
             }
         }
 
+        private void CompleteAcceptPoll()
+        {
+            var socket = _acceptSocket.Accept(out var endPoint);
+            if (socket == -1)
+            {
+                Accept();
+                return;
+            }
+
+            IoUringConnectionContext context = new IoUringConnectionContext(_endPoint, endPoint, _memoryPool);
+
+            _connections[socket] = context;
+            _acceptQueue.TryWrite(context);
+        }
+        
         private void CompletePoll(LinuxSocket socket, IoUringConnectionContext context, int result)
         {
             if (result >= 0)
