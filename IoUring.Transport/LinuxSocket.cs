@@ -57,6 +57,20 @@ namespace IoUring.Transport
             return rv;
         }
 
+        public unsafe int GetReadableBytes() // TODO avoid if possible
+        {
+            int readableBytes;
+            int rv = ioctl(_fd, FIONREAD, &readableBytes);
+            if (rv == -1)
+            {
+                throw new ErrnoException(errno);
+            }
+
+            return readableBytes;
+        }
+
+        public void Close() => close(_fd);
+        
         public static implicit operator LinuxSocket(int v) => new LinuxSocket(v);
         public static implicit operator int(LinuxSocket s) => s._fd;
     }
