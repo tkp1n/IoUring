@@ -13,11 +13,13 @@ namespace IoUring
         /// <summary>
         /// Wait for previously submitted items before the current one is issued.
         /// </summary>
-        Drain = 0x01, // IOSQE_IO_DRAIN
+        Drain = 1 << 1, // IOSQE_IO_DRAIN
 
         /// <summary>
         /// Marks items of a chain that must be executed sequentially.
         /// </summary>
-        Link = 0x02 // IOSQE_IO_LINK
+        Link = 1 << 2 // IOSQE_IO_LINK
+        
+        // TODO: Add other new constants
     }
 }
