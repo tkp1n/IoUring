@@ -8,13 +8,4 @@
       <ProjectReference Include="..\IoUring.Transport\IoUring.Transport.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <None Remove="mono_crash.mem.21285.1.blob" />
-      <None Remove="mono_crash.mem.21071.1.blob" />
-      <None Remove="mono_crash.mem.20868.1.blob" />
-      <None Remove="mono_crash.mem.20470.1.blob" />
-      <None Remove="mono_crash.mem.20324.1.blob" />
-    </ItemGroup>
-
-
 </Project>
