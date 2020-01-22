@@ -11,7 +11,7 @@ namespace IoUring.Transport
 {
     internal sealed unsafe class IoUringConnectionContext : TransportConnection
     {
-        public const int ReadIOVecCount = 8;
+        public const int ReadIOVecCount = 1;
         public const int WriteIOVecCount = 8;
 
         // Copied from LibuvTransportOptions.MaxReadBufferSize
@@ -46,19 +46,15 @@ namespace IoUring.Transport
             var handle = GCHandle.Alloc(vecs, GCHandleType.Pinned);
             _iovec = (iovec*) handle.AddrOfPinnedObject();
             _iovecHandle = handle;
-
-            ShouldPoll = true;
         }
 
         public override MemoryPool<byte> MemoryPool { get; }
 
-        public bool ShouldPoll { get; set; }
-        public int ReadableBytes { get; set; }
-        public int ReadVecsLength { get; set; }
+        public bool ShouldRead { get; set; } = true;
         public bool ShouldWrite { get; set; } = true;
 
         public iovec* ReadVecs => _iovec;
-        public iovec* WriteVecs => _iovec + WriteIOVecCount;
+        public iovec* WriteVecs => _iovec + ReadIOVecCount;
 
         public MemoryHandle[] ReadHandles { get; } = new MemoryHandle[ReadIOVecCount];
         public MemoryHandle[] WriteHandles { get; } = new MemoryHandle[WriteIOVecCount];
@@ -77,7 +73,11 @@ namespace IoUring.Transport
         {
             var flushResult = FlushResult;
             // TODO: handle result
-            ShouldPoll = true;
+
+            var readHandles = ReadHandles;
+            readHandles[0].Dispose();
+
+            ShouldRead = true;
         }
 
         public override ValueTask DisposeAsync()
