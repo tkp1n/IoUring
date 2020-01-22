@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
@@ -58,7 +57,6 @@ namespace IoUring.Transport
             {
                 foreach (var (socket, context) in _connections)
                 {
-                    Poll(socket, context);
                     Read(socket, context);
                     Write(socket, context);
                 }
@@ -73,58 +71,25 @@ namespace IoUring.Transport
             _ring.PreparePollAdd(_acceptSocket, (ushort) POLLIN, AcceptPollMask);
         }
 
-        private void Poll(LinuxSocket socket, IoUringConnectionContext context)
-        {
-            if (!context.ShouldPoll) return;
-            _ring.PreparePollAdd(socket, (ushort) POLLIN, Mask(socket, ReadPollMask));
-            context.ShouldPoll = false;
-        }
-
         private unsafe void Read(LinuxSocket socket, IoUringConnectionContext context)
         {
-            var readableBytes = context.ReadableBytes;
-            if (readableBytes == 0) return;
+            if (!context.ShouldRead) return;
 
             var maxBufferSize = _memoryPool.MaxBufferSize;
-            var iovs = Math.DivRem(readableBytes, maxBufferSize, out var remainder);
-            if (iovs >= IoUringConnectionContext.ReadIOVecCount)
-            {
-                iovs = IoUringConnectionContext.ReadIOVecCount;
-                remainder = 0;
-            }
 
             var writer = context.Input;
             var readHandles = context.ReadHandles;
             var readVecs = context.ReadVecs;
-            int i;
-            for (i = 0; i < iovs; i++)
-            {
-                var memory = writer.GetMemory(maxBufferSize);
-                var handle = memory.Pin();
 
-                readVecs[i].iov_base = handle.Pointer;
-                readVecs[i].iov_len = memory.Length;
+            var memory = writer.GetMemory(maxBufferSize);
+            var handle = memory.Pin();
 
-                readHandles[i] = handle;
-                
-                writer.Advance(maxBufferSize);
-            }
+            readVecs[0].iov_base = handle.Pointer;
+            readVecs[0].iov_len = memory.Length;
 
-            if (remainder > 0)
-            {
-                var memory = writer.GetMemory(remainder);
-                var handle = memory.Pin();
+            readHandles[0] = handle;
 
-                readVecs[i].iov_base = handle.Pointer;
-                readVecs[i].iov_len = memory.Length;
-
-                readHandles[i] = handle;  
-                writer.Advance(remainder);
-            }
-
-            var vecsTotal = iovs + (remainder > 0 ? 1 : 0);
-            _ring.PrepareReadV(socket, readVecs, vecsTotal, 0, 0, Mask(socket, ReadMask));
-            context.ReadVecsLength = vecsTotal;
+            _ring.PrepareReadV(socket, readVecs, 1, 0, 0, Mask(socket, ReadMask));
         }
 
         private unsafe void Write(LinuxSocket socket, IoUringConnectionContext context)
@@ -163,7 +128,18 @@ namespace IoUring.Transport
             _ring.PrepareWriteV(socket, writeVecs ,ctr, 0 ,0, Mask(socket, WriteMask));
         }
 
-        private void Flush() => _ring.Flush(_ring.Submit(), 1);
+        private void Flush()
+        {
+            var submitted = _ring.Submit();
+            if (submitted != 0)
+            {
+                _ring.Flush(submitted, 1);
+            }
+            else
+            {
+                // TODO: spin wait???
+            }
+        }
 
         private void Complete()
         {
@@ -177,11 +153,7 @@ namespace IoUring.Transport
                     continue;
                 }
                 if (!_connections.TryGetValue(socket, out var context)) continue;
-                if ((c.userData & ReadPollMask) == ReadPollMask)
-                {
-                    CompleteReadPoll(socket, context, c.result);
-                }
-                else if ((c.userData & ReadMask) == ReadMask)
+                if ((c.userData & ReadMask) == ReadMask)
                 {
                     CompleteRead(socket, context, c.result);
                 }
@@ -197,12 +169,6 @@ namespace IoUring.Transport
             var socket = _acceptSocket.Accept(out var endPoint);
             if (socket == -1)
             {
-                int err = errno;
-                if (err != EAGAIN && err != EWOULDBLOCK && err != EINTR)
-                {
-                    throw new ErrnoException(err);
-                }
-
                 goto AcceptAgain;
             }
 
@@ -214,34 +180,8 @@ namespace IoUring.Transport
         AcceptAgain:
             Accept();
         }
-        
-        private void CompleteReadPoll(LinuxSocket socket, IoUringConnectionContext context, int result)
-        {
-            if (result >= 0)
-            {
-                var readableBytes = socket.GetReadableBytes();
-                if (readableBytes > 0)
-                {
-                    context.ReadableBytes = readableBytes;
-                }
-                else
-                {
-                    context.ShouldPoll = true;
-                }
-            }
-            else
-            {
-                int err = errno;
-                if (err == EAGAIN || err == EINTR)
-                {
-                    context.ShouldPoll = true;
-                }
 
-                throw new ErrnoException(err);
-            } 
-        }
-
-        private unsafe void CompleteRead(int socket, IoUringConnectionContext context, int result)
+        private void CompleteRead(int socket, IoUringConnectionContext context, int result)
         {
             static void Flush(IoUringConnectionContext ctx)
             {
@@ -259,22 +199,8 @@ namespace IoUring.Transport
 
             if (result > 0)
             {
-                if (result == context.ReadableBytes)
-                {
-                    var readHandles = context.ReadHandles;
-                    for (int i = 0; i < readHandles.Length; i++)
-                    {
-                        readHandles[i].Dispose();
-                    }
-
-                    // we read everything
-                    Flush(context);
-                }
-                else if (result < context.ReadableBytes)
-                {
-                    context.ReadableBytes -= result;
-                    _ring.PrepareReadV(socket, context.ReadVecs, context.ReadVecsLength, result, 0, Mask(socket, ReadMask));
-                }
+                context.Input.Advance(result);
+                Flush(context);
             }
             else if (result < 0)
             {
@@ -287,23 +213,28 @@ namespace IoUring.Transport
 
         private static void CompleteWrite(IoUringConnectionContext context, int result)
         {
-            var writeHandles = context.WriteHandles;
-            for (int i = 0; i < writeHandles.Length; i++)
+            try
             {
-                writeHandles[i].Dispose();
-            }
+                if (result > 0)
+                {
+                    var lastWrite = context.LastWrite;
+                    var end = lastWrite.Length == result ? lastWrite.End : lastWrite.GetPosition(result);
 
-            if (result > 0)
-            {
-                var lastWrite = context.LastWrite;
-                var end = lastWrite.Length == result ? lastWrite.End : lastWrite.GetPosition(result);
-
-                context.Output.AdvanceTo(end);
-                context.ShouldWrite = true;
+                    context.Output.AdvanceTo(end);
+                    context.ShouldWrite = true;
+                }
+                else if (result < 0)
+                {
+                    throw new ErrnoException(-result);
+                }
             }
-            else if (result < 0)
+            finally
             {
-                throw new ErrnoException(-result);
+                var writeHandles = context.WriteHandles;
+                for (int i = 0; i < writeHandles.Length; i++)
+                {
+                    writeHandles[i].Dispose();
+                }
             }
         }
 

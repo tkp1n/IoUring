@@ -40,11 +40,11 @@ namespace IoUring.Transport
         {
             sockaddr_storage addr;
             socklen_t len = SizeOf.sockaddr_storage;
-            var rv = accept4(_fd, (sockaddr*)&addr, &len, SOCK_CLOEXEC | SOCK_NONBLOCK);
+            var rv = accept4(_fd, (sockaddr*)&addr, &len, SOCK_NONBLOCK);
             if (rv < 0)
             {
                 var err = errno;
-                if (err == EAGAIN || err == EWOULDBLOCK)
+                if (err == EAGAIN || err == EWOULDBLOCK || err == EINTR)
                 {
                     endPoint = default;
                     return -1;
