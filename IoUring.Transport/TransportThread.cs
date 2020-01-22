@@ -52,10 +52,10 @@ namespace IoUring.Transport
 
         private void Loop()
         {
+            Accept();
+
             while (true)
             {
-                Accept();
-
                 foreach (var (socket, context) in _connections)
                 {
                     Poll(socket, context);
@@ -196,14 +196,22 @@ namespace IoUring.Transport
             var socket = _acceptSocket.Accept(out var endPoint);
             if (socket == -1)
             {
-                Accept();
-                return;
+                int err = errno;
+                if (err != EAGAIN && err != EWOULDBLOCK && err != EINTR)
+                {
+                    throw new ErrnoException(err);
+                }
+
+                goto AcceptAgain;
             }
 
             IoUringConnectionContext context = new IoUringConnectionContext(_endPoint, endPoint, _memoryPool);
 
             _connections[socket] = context;
             _acceptQueue.TryWrite(context);
+
+        AcceptAgain:
+            Accept();
         }
         
         private void CompletePoll(LinuxSocket socket, IoUringConnectionContext context, int result)
