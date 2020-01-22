@@ -46,6 +46,7 @@ namespace IoUring.Transport
 
         public void Run()
         {
+            if (_endPoint.AddressFamily == AddressFamily.InterNetworkV6) return; //TODO: remove (only for debugging)
             new Thread(obj => ((TransportThread)obj).Loop()).Start(this);
         }
 
