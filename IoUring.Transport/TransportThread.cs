@@ -174,6 +174,7 @@ namespace IoUring.Transport
                 if ((c.userData & AcceptPollMask) == AcceptPollMask)
                 {
                     CompleteAcceptPoll();
+                    continue;
                 }
                 if (!_connections.TryGetValue(socket, out var context)) continue;
                 if ((c.userData & ReadPollMask) == ReadPollMask)
