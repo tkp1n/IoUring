@@ -1,19 +1,22 @@
+using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Connections;
+using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
 namespace IoUring.Transport
 {
     internal class TransportThread
     {
-        private const int RingSize = 64;
+        private const int RingSize = 32;
         private const int ListenBacklog = 128;
         private const ulong ReadMask =        0x100000000UL << 0;
         private const ulong WriteMask =       0x100000000UL << 1;
@@ -32,6 +35,8 @@ namespace IoUring.Transport
         private readonly MemoryPool<byte> _memoryPool = new SlabMemoryPool();
         private LinuxSocket _acceptSocket;
         private int _eventfd;
+        private GCHandle _eventfdBytes;
+        private GCHandle _eventfdIoVec;
 
         public TransportThread(IPEndPoint endPoint, ChannelWriter<ConnectionContext> acceptQueue)
         {
@@ -61,7 +66,7 @@ namespace IoUring.Transport
 
         private void Loop()
         {
-            PollEventFd();
+            ReadEventFd();
             Accept();
 
             while (true)
@@ -81,18 +86,29 @@ namespace IoUring.Transport
             }
         }
 
-        private void SetupEventFd()
+        private unsafe void SetupEventFd()
         {
             int res = EventFd.eventfd(0, EventFd.EFD_SEMAPHORE);
             if (res == -1) throw new ErrnoException(errno);
-
             _eventfd = res;
+
+            // Pin buffer for eventfd reads via io_uring
+            byte[] bytes = new byte[8];
+            _eventfdBytes = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+
+            // Pin iovec used for eventfd reads via io_uring
+            var eventfdIoVec = new iovec
+            {
+                iov_base = (void*) _eventfdBytes.AddrOfPinnedObject(),
+                iov_len = bytes.Length
+            };
+            _eventfdIoVec = GCHandle.Alloc(eventfdIoVec, GCHandleType.Pinned);
         }
 
-        private void PollEventFd()
+        private unsafe void ReadEventFd()
         {
-            Debug.WriteLine("Adding poll on eventfd");
-            _ring.PreparePollAdd(_eventfd, (ushort) POLLIN, EventFdPollMask);
+            Debug.WriteLine("Adding read on eventfd");
+            _ring.PrepareReadV(_eventfd, (iovec*) _eventfdIoVec.AddrOfPinnedObject(), 1, userData: EventFdPollMask);
         }
 
         private void Accept()
@@ -173,17 +189,10 @@ namespace IoUring.Transport
         private void Flush()
         {
             var submitted = _ring.Submit();
-            if (submitted != 0)
-            {
-                Debug.WriteLine($"Waiting for one completion");
-                _threadContext.IsBlocked = true;
-                _ring.Flush(submitted, 1);
-                _threadContext.IsBlocked = false;
-            }
-            else
-            {
-                // TODO: spin wait???
-            }
+            Debug.WriteLine($"Waiting for one completion");
+            _threadContext.IsBlocked = true;
+            _ring.Flush(submitted, 1);
+            _threadContext.IsBlocked = false;
         }
 
         private void Complete()
@@ -225,7 +234,7 @@ namespace IoUring.Transport
         private void CompleteEventFdPoll()
         {
             Debug.WriteLine("EventFd completed");
-            PollEventFd();
+            ReadEventFd();
         }
 
         private void CompleteAcceptPoll()
@@ -329,9 +338,18 @@ namespace IoUring.Transport
                 if (result > 0)
                 {
                     var lastWrite = context.LastWrite;
-                    var end = lastWrite.Length == result ? lastWrite.End : lastWrite.GetPosition(result);
+                    SequencePosition end;
+                    if (lastWrite.Length == result)
+                    {
+                        Debug.WriteLine($"Wrote all {result} bytes to {(int)context.Socket}");
+                        end = lastWrite.End;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Wrote some {result} bytes to {(int)context.Socket}");
+                        end = lastWrite.GetPosition(result);
+                    }
 
-                    Debug.WriteLine($"Wrote {result} bytes to {(int)context.Socket}");
                     context.Output.AdvanceTo(end);
                     ReadFromApp(context);
                 }

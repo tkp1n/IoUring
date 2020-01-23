@@ -58,14 +58,9 @@ namespace IoUring.Internal
         internal enum ExceptionArgument
         {
             continuation,
-            count,
             exception,
-            flags,
             handle,
-            index,
             ioScheduler,
-            minComplete,
-            offset
         }
     }
 }

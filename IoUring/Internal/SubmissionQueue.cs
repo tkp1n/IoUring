@@ -154,8 +154,6 @@ namespace IoUring.Internal
 
         public uint Flush(int ringFd, bool kernelIoPolling, uint toFlush, uint minComplete)
         {
-            if (minComplete > toFlush) ThrowArgumentOutOfRangeException(ExceptionArgument.minComplete);
-
             if (!ShouldFlush(kernelIoPolling, out uint enterFlags))
             {
                 // Assume all Entries are known to the kernel (flushed)
