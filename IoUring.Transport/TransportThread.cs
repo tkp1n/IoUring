@@ -86,7 +86,6 @@ namespace IoUring.Transport
             int res = EventFd.eventfd(0, EventFd.EFD_SEMAPHORE);
             if (res == -1) throw new ErrnoException(errno);
 
-            _ring.RegisterEventFd(res);
             _eventfd = res;
         }
 
