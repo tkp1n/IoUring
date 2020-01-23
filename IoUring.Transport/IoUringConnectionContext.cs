@@ -1,8 +1,10 @@
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
@@ -19,17 +21,23 @@ namespace IoUring.Transport
         // Copied from LibuvTransportOptions.MaxWriteBufferSize
         private const int PauseOutputWriterThreshold = 64 * 1024;
 
+        private readonly TransportThreadContext _threadContext;
         private readonly Action _onOnFlushedToApp;
+        private readonly Action _onReadFromApp;
 
         private readonly iovec* _iovec;
         private GCHandle _iovecHandle;
 
-        public IoUringConnectionContext(EndPoint server, EndPoint client, MemoryPool<byte> pool)
+        public IoUringConnectionContext(LinuxSocket socket, EndPoint server, EndPoint client, MemoryPool<byte> pool,
+            TransportThreadContext threadContext)
         {
+            Socket = socket;
+            
             LocalEndPoint = server;
             RemoteEndPoint = client;
 
             MemoryPool = pool;
+            _threadContext = threadContext;
 
             var appScheduler = PipeScheduler.ThreadPool; // TODO: configure
             var inputOptions = new PipeOptions(MemoryPool, appScheduler, PipeScheduler.Inline, PauseInputWriterThreshold, PauseInputWriterThreshold / 2, useSynchronizationContext: false);
@@ -40,7 +48,8 @@ namespace IoUring.Transport
             Transport = pair.Transport;
             Application = pair.Application;
 
-            _onOnFlushedToApp = FlushedToApp;
+            _onOnFlushedToApp = FlushedToAppAsynchronously;
+            _onReadFromApp = ReadFromAppAsynchronously;
 
             iovec[] vecs = new iovec[ReadIOVecCount + WriteIOVecCount];
             var handle = GCHandle.Alloc(vecs, GCHandleType.Pinned);
@@ -48,10 +57,8 @@ namespace IoUring.Transport
             _iovecHandle = handle;
         }
 
+        public LinuxSocket Socket { get; }
         public override MemoryPool<byte> MemoryPool { get; }
-
-        public bool ShouldRead { get; set; } = true;
-        public bool ShouldWrite { get; set; } = true;
 
         public iovec* ReadVecs => _iovec;
         public iovec* WriteVecs => _iovec + ReadIOVecCount;
@@ -66,10 +73,11 @@ namespace IoUring.Transport
         public PipeReader Output => Application.Input;
 
         public ValueTask<FlushResult> FlushResult { get; set; }
-
+        public ValueTask<ReadResult> ReadResult { get; set; }
         public Action OnFlushedToApp => _onOnFlushedToApp;
+        public Action OnReadFromApp => _onReadFromApp;
 
-        public void FlushedToApp()
+        private void FlushedToApp(bool async)
         {
             var flushResult = FlushResult;
             // TODO: handle result
@@ -77,9 +85,37 @@ namespace IoUring.Transport
             var readHandles = ReadHandles;
             readHandles[0].Dispose();
 
-            ShouldRead = true;
+            if (async)
+            {
+                Debug.WriteLine($"Flushed to app for {(int)Socket} asynchronously");
+                _threadContext.ReadPollQueue.Enqueue(this);
+            }
+        }
+        
+        public void FlushedToAppSynchronously() => FlushedToApp(false);
+        private void FlushedToAppAsynchronously() => FlushedToApp(true);
+
+        private void ReadFromApp(bool async)
+        {
+            var readResult = ReadResult;
+            // TODO: handle result
+
+            if (async)
+            {
+                Debug.WriteLine($"Read from app for {(int)Socket} asynchronously");
+                _threadContext.WritePollQueue.Enqueue(this);
+
+                if (_threadContext.IsBlocked)
+                {
+                    Debug.WriteLine("Attempting to unblock thread");
+                    _threadContext.Unblock();
+                }
+            }            
         }
 
+        private void ReadFromAppAsynchronously() => ReadFromApp(true);
+        public void ReadFromAppSynchronously() => ReadFromApp(false);
+        
         public override ValueTask DisposeAsync()
         {
             // TODO: close pipes?
@@ -87,7 +123,6 @@ namespace IoUring.Transport
                 _iovecHandle.Free();
             return base.DisposeAsync();
         }
-
 
         internal class DuplexPipe : IDuplexPipe
         {
