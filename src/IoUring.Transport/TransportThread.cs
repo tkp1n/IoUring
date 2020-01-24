@@ -54,7 +54,7 @@ namespace IoUring.Transport
         public void Bind()
         {
             var domain = _endPoint.AddressFamily == AddressFamily.InterNetwork ? AF_INET : AF_INET6;
-            LinuxSocket s = socket(domain, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+            LinuxSocket s = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
             s.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
             s.SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
             s.Bind(_endPoint);
