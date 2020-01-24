@@ -14,7 +14,12 @@ namespace IoUring.Internal
 
         public void SetHandle(int fd) => SetHandle((IntPtr)fd);
 
-        protected override bool ReleaseHandle() => close(handle.ToInt32()) == 0;
+        protected override bool ReleaseHandle()
+        {
+            // close(2) on Linux should not be checked other than for diagnostic purposes
+            close(handle.ToInt32());
+            return true;
+        }
 
         public override bool IsInvalid => handle.ToInt32() < 0;
     }
