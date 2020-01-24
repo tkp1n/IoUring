@@ -58,11 +58,7 @@ namespace IoUring.Transport
             _acceptSocket = s;
         }
 
-        public void Run()
-        {
-            if (_endPoint.AddressFamily == AddressFamily.InterNetworkV6) return; //TODO: remove (only for debugging)
-            new Thread(obj => ((TransportThread)obj).Loop()).Start(this);
-        }
+        public void Run() => new Thread(obj => ((TransportThread)obj).Loop()).Start(this);
 
         private void Loop()
         {
@@ -242,7 +238,7 @@ namespace IoUring.Transport
             var socket = _acceptSocket.Accept(out var endPoint);
             if (socket == -1)
             {
-                Debug.WriteLine("Polled accept for nothing"); // TODO: remove
+                Debug.WriteLine("Polled accept for nothing");
                 goto AcceptAgain;
             }
 
@@ -269,7 +265,7 @@ namespace IoUring.Transport
                     throw new ErrnoException(-result);
                 }
                 
-                Debug.WriteLine("Polled read for nothing"); // TODO: remove
+                Debug.WriteLine("Polled read for nothing");
                 PollRead(context);
                 return;
             }
@@ -287,7 +283,7 @@ namespace IoUring.Transport
                     throw new ErrnoException(-result);
                 }
                 
-                Debug.WriteLine("Polled write for nothing"); // TODO: remove
+                Debug.WriteLine("Polled write for nothing");
                 PollWrite(context);
                 return;
             }
@@ -311,7 +307,7 @@ namespace IoUring.Transport
                     throw new ErrnoException(-result);
                 }
                 
-                Debug.WriteLine("Read for nothing"); // TODO: remove
+                Debug.WriteLine("Read for nothing");
             }
         }
 
@@ -360,7 +356,7 @@ namespace IoUring.Transport
                         throw new ErrnoException(-result);
                     }
 
-                    Debug.WriteLine("Wrote for nothing"); // TODO: remove
+                    Debug.WriteLine("Wrote for nothing");
                 }
             }
             finally
