@@ -40,7 +40,7 @@ namespace IoUring.Transport
         {
             sockaddr_storage addr;
             socklen_t len = SizeOf.sockaddr_storage;
-            var rv = accept4(_fd, (sockaddr*)&addr, &len, SOCK_NONBLOCK);
+            var rv = accept4(_fd, (sockaddr*)&addr, &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
             if (rv < 0)
             {
                 var err = errno;
