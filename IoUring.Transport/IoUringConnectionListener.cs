@@ -30,7 +30,7 @@ namespace IoUring.Transport
             if (!(EndPoint is IPEndPoint)) throw new NotSupportedException();
             if (EndPoint.AddressFamily != AddressFamily.InterNetwork && EndPoint.AddressFamily != AddressFamily.InterNetworkV6) throw new NotSupportedException();
 
-            var threads = new TransportThread[1/* TODO: Math.Min(Environment.ProcessorCount, 16)*/];
+            var threads = new TransportThread[Math.Min(Environment.ProcessorCount, 16)];
             var acceptQueue = Channel.CreateUnbounded<ConnectionContext>();
             _acceptQueue = acceptQueue.Reader;
             for (int i = 0; i < threads.Length; i++)
