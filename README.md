@@ -1,4 +1,3 @@
-![Badge](https://github.com/tkp1n/IoUring/workflows/.NET%20Core/badge.svg)
 # IoUring
 
 C# wrapper for [`io_uring`](https://kernel.dk/io_uring.pdf). This library fulfills the same purpose as the native [liburing](https://github.com/axboe/liburing), by which it is heavily inspired.
