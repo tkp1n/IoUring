@@ -11,8 +11,8 @@ namespace IoUring
     public sealed class RingResultPool
     {
         private readonly PipeScheduler _ioScheduler;
-        private readonly RingResult[] _items;
-        private RingResult _firstItem;
+        private readonly RingResult?[] _items;
+        private RingResult? _firstItem;
 
         /// <summary>
         /// Creates an instance of <see cref="RingResultPool"/>.
@@ -28,7 +28,7 @@ namespace IoUring
 
         public RingResult Get()
         {
-            RingResult item = _firstItem;
+            var item = _firstItem;
             if (item == null || Interlocked.CompareExchange(ref _firstItem, null, item) != item)
             {
                 var items = _items;

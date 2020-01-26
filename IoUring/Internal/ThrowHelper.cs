@@ -41,6 +41,13 @@ namespace IoUring.Internal
         private static Exception NewCompletionQueueOverflowException(long count)
             => new CompletionQueueOverflowException(count);
 
+        public static void ThrowArgumentException(ExceptionArgument argument)
+            => throw NewArgumentException(argument);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewArgumentException(ExceptionArgument argument)
+            => new ArgumentException(argument.ToString());
+
         public static void ThrowArgumentNullException(ExceptionArgument argument)
             => throw NewArgumentNullException(argument);
 

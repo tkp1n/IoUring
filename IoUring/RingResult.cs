@@ -14,10 +14,10 @@ namespace IoUring
     public sealed class RingResult : ICriticalNotifyCompletion, IDisposable
     {
         private readonly PipeScheduler _ioScheduler;
-        private readonly Exception _forcedException;
+        private readonly Exception? _forcedException;
         private GCHandle _handle;
         private int _result;
-        private Action _callback;
+        private Action? _callback;
 
         private static readonly Action CallbackCompleted = () => { };
         private static readonly Action<object> InvokeStateAsAction = state => ((Action)state)();
@@ -25,7 +25,7 @@ namespace IoUring
         private RingResult(PipeScheduler ioScheduler)
         {
             if (ioScheduler == null) ThrowHelper.ThrowArgumentNullException(ThrowHelper.ExceptionArgument.ioScheduler);
-            _ioScheduler = ioScheduler;
+            _ioScheduler = ioScheduler!;
             _forcedException = null;
         }
 
@@ -34,7 +34,7 @@ namespace IoUring
             if (ioScheduler == null) ThrowHelper.ThrowArgumentNullException(ThrowHelper.ExceptionArgument.ioScheduler);
             if (exception == null) ThrowHelper.ThrowArgumentNullException(ThrowHelper.ExceptionArgument.exception);
 
-            _ioScheduler = ioScheduler;
+            _ioScheduler = ioScheduler!;
             _forcedException = exception;
             _result = -1;
             _callback = CallbackCompleted;
@@ -52,7 +52,7 @@ namespace IoUring
         /// <returns>A new instance of <see cref="RingResult"/></returns>
         internal static RingResult Create(PipeScheduler ioScheduler)
         {
-            RingResult res = new RingResult(ioScheduler);
+            var res = new RingResult(ioScheduler);
             res._handle = GCHandle.Alloc(res, GCHandleType.Weak);
             return res;
         }
@@ -67,7 +67,11 @@ namespace IoUring
         internal static RingResult TaskFromHandle(ulong handle)
         {
             if (handle == 0) ThrowHelper.ThrowArgumentOutOfRangeException(ThrowHelper.ExceptionArgument.handle);
-            return (RingResult) GCHandle.FromIntPtr((IntPtr) handle).Target;
+
+            var result = GCHandle.FromIntPtr((IntPtr) handle).Target as RingResult;
+            if (result == null) ThrowHelper.ThrowArgumentException(ThrowHelper.ExceptionArgument.handle);
+
+            return result!;
         }
 
         /// <summary>
@@ -126,7 +130,7 @@ namespace IoUring
         internal void Complete(int result)
         {
             _result = result;
-            Action continuation = Interlocked.Exchange(ref _callback, CallbackCompleted);
+            var continuation = Interlocked.Exchange(ref _callback, CallbackCompleted);
 
             if (continuation != null)
             {
@@ -135,9 +139,13 @@ namespace IoUring
         }
 
         private void ThrowForcedException()
-            => throw ForcedException;
+        {
+            var forcedException = ForcedException;
+            if (forcedException != null)
+                throw forcedException;
+        }
 
-        private Exception ForcedException
+        private Exception? ForcedException
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
             get => _forcedException;
