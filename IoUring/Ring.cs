@@ -13,7 +13,7 @@ namespace IoUring
         private readonly uint _flags;
         private readonly CloseHandle _ringFd;
 
-        private static int Setup(uint entries, io_uring_params* p, RingOptions options)
+        private static int Setup(uint entries, io_uring_params* p, RingOptions? options)
         {
             options?.WriteTo(p);
 
@@ -91,7 +91,7 @@ namespace IoUring
             return CompletionQueue.CreateCompletionQueue(ptr, &p->cq_off);
         }
 
-        public Ring(int entries, RingOptions ringOptions = default)
+        public Ring(int entries, RingOptions? ringOptions = default)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) throw new PlatformNotSupportedException();
             if (entries < 1) throw new ArgumentOutOfRangeException(nameof(entries), "must be non-zero positive value");
