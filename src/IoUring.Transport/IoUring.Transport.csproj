@@ -8,11 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="..\externals\*.cs" />
+        <Compile Include="..\..\externals\*.cs" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\IoUring\IoUring.csproj" />
+      <ProjectReference Include="..\..\src\IoUring\IoUring.csproj" />
     </ItemGroup>
 
 </Project>

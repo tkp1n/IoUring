@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring", "IoUring\IoUring.csproj", "{01069FE7-BBA2-4B44-86ED-25668456CAA8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring", "src\IoUring\IoUring.csproj", "{01069FE7-BBA2-4B44-86ED-25668456CAA8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Tests", "IoUring.Tests\IoUring.Tests.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Tests", "tests\IoUring.Tests\IoUring.Tests.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Transport", "IoUring.Transport\IoUring.Transport.csproj", "{BAC549A0-C912-431D-9675-EE06B667CC73}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Transport", "src\IoUring.Transport\IoUring.Transport.csproj", "{BAC549A0-C912-431D-9675-EE06B667CC73}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.TestApp", "IoUring.TestApp\IoUring.TestApp.csproj", "{894D3416-D57C-40B5-83DD-0B15B49EF0B3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.TestApp", "tests\IoUring.TestApp\IoUring.TestApp.csproj", "{894D3416-D57C-40B5-83DD-0B15B49EF0B3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
