@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\IoUring\IoUring.csproj" />
+      <ProjectReference Include="..\..\src\IoUring\IoUring.csproj" />
     </ItemGroup>
 
 </Project>
