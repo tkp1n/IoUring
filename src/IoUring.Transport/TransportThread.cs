@@ -38,6 +38,10 @@ namespace IoUring.Transport
         private GCHandle _eventfdBytes;
         private GCHandle _eventfdIoVec;
 
+        // variables to prevent useless spinning in the event loop
+        private int _loopsWithoutSubmission;
+        private int _loopsWithoutCompletion;
+
         public TransportThread(IPEndPoint endPoint, ChannelWriter<ConnectionContext> acceptQueue)
         {
             _ring = new Ring(RingSize);
@@ -185,17 +189,24 @@ namespace IoUring.Transport
         private void Flush()
         {
             var submitted = _ring.Submit();
-            Debug.WriteLine($"Waiting for one completion");
-            _threadContext.IsBlocked = true;
-            _ring.Flush(submitted, 1);
-            _threadContext.IsBlocked = false;
+            var flushed = _ring.Flush(submitted, _threadContext.UnsafeBlockingMode ? 1u : 0u);
+            if (flushed == 0)
+            {
+                _loopsWithoutSubmission++;
+            }
+            else
+            {
+                _loopsWithoutSubmission = 0;
+            }
         }
 
         private void Complete()
         {
             Completion c = default;
+            var sawCompletion = false;
             while (_ring.TryRead(ref c))
             {
+                sawCompletion = true;
                 var socket = (int)c.userData;
                 if ((c.userData & EventFdPollMask) == EventFdPollMask)
                 {
@@ -223,6 +234,24 @@ namespace IoUring.Transport
                 else if ((c.userData & WriteMask) == WriteMask)
                 {
                     CompleteWrite(context, c.result);
+                }
+            }
+
+            if (!sawCompletion)
+            {
+                _loopsWithoutCompletion++;
+                if (_loopsWithoutSubmission >= 3 && _loopsWithoutCompletion >= 3)
+                {
+                    // we might spin forever, if we don't act now
+                    _threadContext.BlockingMode = true;
+                }
+            }
+            else
+            {
+                _loopsWithoutCompletion = 0;
+                if (_threadContext.UnsafeBlockingMode)
+                {
+                    _threadContext.BlockingMode = false;
                 }
             }
         }
