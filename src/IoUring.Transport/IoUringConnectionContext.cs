@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
@@ -103,9 +102,10 @@ namespace IoUring.Transport
             if (async)
             {
                 Debug.WriteLine($"Read from app for {(int)Socket} asynchronously");
+                var blocking = _threadContext.BlockingMode;
                 _threadContext.WritePollQueue.Enqueue(this);
 
-                if (_threadContext.IsBlocked)
+                if (blocking)
                 {
                     Debug.WriteLine("Attempting to unblock thread");
                     _threadContext.Unblock();

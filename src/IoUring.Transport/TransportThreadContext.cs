@@ -7,8 +7,8 @@ namespace IoUring.Transport
 {
     internal class TransportThreadContext
     {
-        private volatile bool _isBlocked;
         private readonly int _eventFd;
+        private bool _unsafeBlockingMode;
         
         public TransportThreadContext(ConcurrentQueue<IoUringConnectionContext> readPollQueue, ConcurrentQueue<IoUringConnectionContext> writePollQueue, int eventFd)
         {
@@ -17,13 +17,12 @@ namespace IoUring.Transport
             _eventFd = eventFd;
         }
 
-        /// <summary>
-        /// Gets/Sets whether the thread is blocked in the io_uring 
-        /// </summary>
-        public bool IsBlocked
+        public bool UnsafeBlockingMode => _unsafeBlockingMode;
+
+        public bool BlockingMode
         {
-            get => _isBlocked;
-            set => _isBlocked = value;
+            get => Volatile.Read(ref _unsafeBlockingMode);
+            set => Volatile.Write(ref _unsafeBlockingMode, value);
         }
 
         /// <summary>
@@ -31,26 +30,11 @@ namespace IoUring.Transport
         /// </summary>
         public unsafe void Unblock()
         {
-            bool blocked;
-            if ((blocked = _isBlocked) == true)
+            byte* val = stackalloc byte[sizeof(ulong)];
+            Unsafe.WriteUnaligned(val, 1UL);
+            if (write(_eventFd, val, sizeof(ulong)) == -1)
             {
-                // Spin first to avoid syscall if thread unblocks itself during the spins
-                var sw = new SpinWait();
-                while (!sw.NextSpinWillYield && (blocked = _isBlocked) == true)
-                {
-                    sw.SpinOnce();
-                }
-
-                if (blocked)
-                {
-                    // Thread is still blocked, actually unblock the thread by triggering the read on the eventFd
-                    byte* val = stackalloc byte[sizeof(ulong)];
-                    Unsafe.WriteUnaligned(val, 1UL);
-                    if (write(_eventFd, val, sizeof(ulong)) == -1)
-                    {
-                        throw new ErrnoException(errno);
-                    }
-                }
+                throw new ErrnoException(errno);
             }
         }
 
