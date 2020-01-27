@@ -240,7 +240,7 @@ namespace IoUring.Transport
             if (!sawCompletion)
             {
                 _loopsWithoutCompletion++;
-                if (_loopsWithoutSubmission >= 3 && _loopsWithoutCompletion >= 3)
+                if (_loopsWithoutSubmission >= 3 && _loopsWithoutCompletion >= 3 && !_threadContext.UnsafeBlockingMode)
                 {
                     // we might spin forever, if we don't act now
                     _threadContext.BlockingMode = true;
