@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -9,12 +10,15 @@ namespace IoUring.Transport
     {
         private readonly int _eventFd;
         private bool _unsafeBlockingMode;
-        
-        public TransportThreadContext(ConcurrentQueue<IoUringConnectionContext> readPollQueue, ConcurrentQueue<IoUringConnectionContext> writePollQueue, int eventFd)
+
+        public TransportThreadContext(IoUringOptions options, ConcurrentQueue<IoUringConnectionContext> readPollQueue,
+            ConcurrentQueue<IoUringConnectionContext> writePollQueue, MemoryPool<byte> memoryPool, int eventFd)
         {
             ReadPollQueue = readPollQueue;
             WritePollQueue = writePollQueue;
             _eventFd = eventFd;
+            Options = options;
+            MemoryPool = memoryPool;
         }
 
         public bool UnsafeBlockingMode => _unsafeBlockingMode;
@@ -25,9 +29,14 @@ namespace IoUring.Transport
             set => Volatile.Write(ref _unsafeBlockingMode, value);
         }
 
-        /// <summary>
-        /// Unblocks the thread
-        /// </summary>
+        public IoUringOptions Options { get; }
+
+        public ConcurrentQueue<IoUringConnectionContext> ReadPollQueue { get; }
+
+        public ConcurrentQueue<IoUringConnectionContext> WritePollQueue { get; }
+
+        public MemoryPool<byte> MemoryPool { get; }
+
         public unsafe void Unblock()
         {
             byte* val = stackalloc byte[sizeof(ulong)];
@@ -37,15 +46,5 @@ namespace IoUring.Transport
                 throw new ErrnoException(errno);
             }
         }
-
-        /// <summary>
-        /// Queue of connections for which a poll for available data to read should be registered
-        /// </summary>
-        public ConcurrentQueue<IoUringConnectionContext> ReadPollQueue { get; }
-
-        /// <summary>
-        /// Queue of connections for which a poll for a possible write operation should be registered
-        /// </summary>
-        public ConcurrentQueue<IoUringConnectionContext> WritePollQueue { get; }
     }
 }

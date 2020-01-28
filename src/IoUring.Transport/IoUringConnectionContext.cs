@@ -27,18 +27,17 @@ namespace IoUring.Transport
         private readonly iovec* _iovec;
         private GCHandle _iovecHandle;
 
-        public IoUringConnectionContext(LinuxSocket socket, EndPoint server, EndPoint client, MemoryPool<byte> pool,
-            TransportThreadContext threadContext)
+        public IoUringConnectionContext(LinuxSocket socket, EndPoint server, EndPoint client, TransportThreadContext threadContext)
         {
             Socket = socket;
-            
+
             LocalEndPoint = server;
             RemoteEndPoint = client;
 
-            MemoryPool = pool;
+            MemoryPool = threadContext.MemoryPool;
             _threadContext = threadContext;
 
-            var appScheduler = PipeScheduler.ThreadPool; // TODO: configure
+            var appScheduler = threadContext.Options.ApplicationSchedulingMode;
             var inputOptions = new PipeOptions(MemoryPool, appScheduler, PipeScheduler.Inline, PauseInputWriterThreshold, PauseInputWriterThreshold / 2, useSynchronizationContext: false);
             var outputOptions = new PipeOptions(MemoryPool, PipeScheduler.Inline, appScheduler, PauseOutputWriterThreshold, PauseOutputWriterThreshold / 2, useSynchronizationContext: false);
 

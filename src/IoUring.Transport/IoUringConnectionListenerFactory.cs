@@ -10,20 +10,14 @@ namespace IoUring.Transport
 {
     internal class IoUringConnectionListenerFactory : IConnectionListenerFactory
     {
-        private IoUringOptions _options;
-        private ILoggerFactory _loggerFactory;
+        private readonly IoUringTransport _ioUringTransport;
 
-        public IoUringConnectionListenerFactory(IOptions<IoUringOptions> options, ILoggerFactory loggerFactory)
+        public IoUringConnectionListenerFactory(IoUringTransport ioUringTransport)
         {
-            _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
-            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            _ioUringTransport = ioUringTransport;
         }
 
         public ValueTask<IConnectionListener> BindAsync(EndPoint endpoint, CancellationToken cancellationToken = default)
-        {
-            var listener = new IoUringConnectionListener(endpoint, _options, _loggerFactory);
-            listener.Bind();
-            return new ValueTask<IConnectionListener>(listener);
-        }
+            => IoUringConnectionListener.Create(endpoint, _ioUringTransport);
     }
 }

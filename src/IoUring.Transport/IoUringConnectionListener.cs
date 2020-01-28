@@ -5,45 +5,54 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.Extensions.Logging;
 
 namespace IoUring.Transport
 {
     internal class IoUringConnectionListener : IConnectionListener
     {
-        private readonly IoUringOptions _options;
-        private readonly ILoggerFactory _loggerFactory;
+        private readonly IoUringTransport _transport;
 
         private ChannelReader<ConnectionContext> _acceptQueue;
 
-        public IoUringConnectionListener(EndPoint endpoint, IoUringOptions options, ILoggerFactory loggerFactory)
+        private IoUringConnectionListener(EndPoint endpoint, IoUringTransport transport)
         {
             EndPoint = endpoint;
-            _options = options;
-            _loggerFactory = loggerFactory;
+            _transport = transport;
         }
 
         public EndPoint EndPoint { get; }
 
-        public void Bind()
+        public static ValueTask<IConnectionListener> Create(EndPoint endpoint, IoUringTransport transport)
+        {
+            var listener = new IoUringConnectionListener(endpoint, transport);
+            listener.Bind();
+            return new ValueTask<IConnectionListener>(listener);
+        }
+
+        private void Bind()
         {
             if (!(EndPoint is IPEndPoint)) throw new NotSupportedException();
             if (EndPoint.AddressFamily != AddressFamily.InterNetwork && EndPoint.AddressFamily != AddressFamily.InterNetworkV6) throw new NotSupportedException();
 
-            var threads = new TransportThread[Math.Min(Environment.ProcessorCount, 16)];
             var acceptQueue = Channel.CreateUnbounded<ConnectionContext>();
             _acceptQueue = acceptQueue.Reader;
-            for (int i = 0; i < threads.Length; i++)
+
+            var threads = _transport.TransportThreads;
+            foreach (var thread in threads)
             {
-                var thread = new TransportThread(EndPoint as IPEndPoint, acceptQueue.Writer);
-                thread.Bind();
-                thread.Run();
-                threads[i] = thread;
+                thread.Bind((IPEndPoint) EndPoint, acceptQueue.Writer);
             }
         }
 
-        public ValueTask<ConnectionContext> AcceptAsync(CancellationToken cancellationToken = default) =>
-            _acceptQueue.ReadAsync(cancellationToken);
+        public async ValueTask<ConnectionContext> AcceptAsync(CancellationToken cancellationToken = default)
+        {
+            await foreach (var connection in _acceptQueue.ReadAllAsync(cancellationToken))
+            {
+                return connection;
+            }
+
+            return null;
+        }
 
         public ValueTask UnbindAsync(CancellationToken cancellationToken = default)
         {

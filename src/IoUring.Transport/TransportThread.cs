@@ -25,15 +25,18 @@ namespace IoUring.Transport
         private const ulong AcceptPollMask =  0x100000000UL << 4;
         private const ulong EventFdPollMask = 0x100000000UL << 5;
 
+        private static int _threadId;
+
         private readonly Ring _ring;
-        private readonly IPEndPoint _endPoint;
-        private readonly ChannelWriter<ConnectionContext> _acceptQueue;
+        // TODO: One queue would probably suffice
+        private readonly ConcurrentQueue<AcceptSocketContext> _acceptSocketQueue = new ConcurrentQueue<AcceptSocketContext>();
         private readonly ConcurrentQueue<IoUringConnectionContext> _readPollQueue = new ConcurrentQueue<IoUringConnectionContext>();
         private readonly ConcurrentQueue<IoUringConnectionContext> _writePollQueue = new ConcurrentQueue<IoUringConnectionContext>();
+        // TODO: One Dictionary would probably suffice
+        private readonly Dictionary<int, AcceptSocketContext> _acceptSockets = new Dictionary<int, AcceptSocketContext>();
         private readonly Dictionary<int, IoUringConnectionContext> _connections = new Dictionary<int, IoUringConnectionContext>();
         private readonly TransportThreadContext _threadContext;
         private readonly MemoryPool<byte> _memoryPool = new SlabMemoryPool();
-        private LinuxSocket _acceptSocket;
         private int _eventfd;
         private GCHandle _eventfdBytes;
         private GCHandle _eventfdIoVec;
@@ -42,40 +45,51 @@ namespace IoUring.Transport
         private int _loopsWithoutSubmission;
         private int _loopsWithoutCompletion;
 
-        public TransportThread(IPEndPoint endPoint, ChannelWriter<ConnectionContext> acceptQueue)
+        public TransportThread(IoUringOptions options)
         {
             _ring = new Ring(RingSize);
             SetupEventFd();
-            _endPoint = endPoint;
-            _acceptQueue = acceptQueue;
-            _threadContext = new TransportThreadContext(_readPollQueue, _writePollQueue, _eventfd);
+            _threadContext = new TransportThreadContext(options, _readPollQueue, _writePollQueue, _memoryPool, _eventfd);
         }
 
-        public void Bind()
+        public void Bind(IPEndPoint endpoint, ChannelWriter<ConnectionContext> acceptQueue)
         {
-            var domain = _endPoint.AddressFamily == AddressFamily.InterNetwork ? AF_INET : AF_INET6;
+            var domain = endpoint.AddressFamily == AddressFamily.InterNetwork ? AF_INET : AF_INET6;
             LinuxSocket s = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
             s.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
             s.SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
-            s.Bind(_endPoint);
+            s.Bind(endpoint);
             s.Listen(ListenBacklog);
-            _acceptSocket = s;
+
+            var context = new AcceptSocketContext(s, endpoint, acceptQueue);
+
+            var blocking = _threadContext.BlockingMode;
+            _acceptSocketQueue.Enqueue(context);
+            if (blocking)
+                _threadContext.Unblock();
         }
 
-        public void Run() => new Thread(obj => ((TransportThread)obj).Loop()).Start(this);
+        public void Run() => new Thread(obj => ((TransportThread)obj).Loop())
+        {
+            IsBackground = true,
+            Name = $"IoUring Transport Thread - {Interlocked.Increment(ref _threadId)}"
+        }.Start(this);
 
         private void Loop()
         {
             ReadEventFd();
-            Accept();
 
             while (true)
             {
+                while (_acceptSocketQueue.TryDequeue(out var context))
+                {
+                    _acceptSockets[context.Socket] = context;
+                    Accept(context);
+                }
                 while (_readPollQueue.TryDequeue(out var context))
                 {
                     PollRead(context);
                 }
-
                 while (_writePollQueue.TryDequeue(out var context))
                 {
                     PollWrite(context);
@@ -111,10 +125,11 @@ namespace IoUring.Transport
             _ring.PrepareReadV(_eventfd, (iovec*) _eventfdIoVec.AddrOfPinnedObject(), 1, userData: EventFdPollMask);
         }
 
-        private void Accept()
+        private void Accept(AcceptSocketContext acceptSocket)
         {
-            Debug.WriteLine($"Adding accept on {(int)_acceptSocket}");
-            _ring.PreparePollAdd(_acceptSocket, (ushort) POLLIN, AcceptPollMask);
+            var socket = acceptSocket.Socket;
+            Debug.WriteLine($"Adding accept on {(int)socket}");
+            _ring.PreparePollAdd(socket, (ushort) POLLIN, Mask(socket, AcceptPollMask));
         }
 
         private void PollRead(IoUringConnectionContext context)
@@ -215,7 +230,7 @@ namespace IoUring.Transport
                 }
                 if ((c.userData & AcceptPollMask) == AcceptPollMask)
                 {
-                    CompleteAcceptPoll();
+                    CompleteAcceptPoll(_acceptSockets[socket]);
                     continue;
                 }
                 if (!_connections.TryGetValue(socket, out var context)) continue;
@@ -262,9 +277,9 @@ namespace IoUring.Transport
             ReadEventFd();
         }
 
-        private void CompleteAcceptPoll()
+        private void CompleteAcceptPoll(AcceptSocketContext context)
         {
-            var socket = _acceptSocket.Accept(out var endPoint);
+            var socket = context.Socket.Accept(out var clientEndpoint);
             if (socket == -1)
             {
                 Debug.WriteLine("Polled accept for nothing");
@@ -272,17 +287,16 @@ namespace IoUring.Transport
             }
 
             Debug.WriteLine($"Accepted {(int)socket}");
-            // TODO: move server endpoint and memory pool to thread context
-            IoUringConnectionContext context = new IoUringConnectionContext(socket, _endPoint, endPoint, _memoryPool, _threadContext);
+            var connectionContext = new IoUringConnectionContext(socket, context.EndPoint, clientEndpoint, _threadContext);
 
-            _connections[socket] = context;
-            _acceptQueue.TryWrite(context);
+            _connections[socket] = connectionContext;
+            context.AcceptQueue.TryWrite(connectionContext);
 
-            PollRead(context);
-            ReadFromApp(context);
+            PollRead(connectionContext);
+            ReadFromApp(connectionContext);
 
         AcceptAgain:
-            Accept();
+            Accept(context);
         }
 
         private void CompleteReadPoll(IoUringConnectionContext context, int result)
