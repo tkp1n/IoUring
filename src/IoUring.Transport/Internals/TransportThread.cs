@@ -8,7 +8,9 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using IoUring.Transport.Internals.Inbound;
+using IoUring.Transport.Internals.Outbound;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
@@ -31,6 +33,7 @@ namespace IoUring.Transport.Internals
         private readonly Ring _ring;
         // TODO: One queue would probably suffice
         private readonly ConcurrentQueue<AcceptSocketContext> _acceptSocketQueue = new ConcurrentQueue<AcceptSocketContext>();
+        private readonly ConcurrentQueue<IoUringConnectionContext> _clientSocketQueue = new ConcurrentQueue<IoUringConnectionContext>();
         private readonly ConcurrentQueue<IoUringConnectionContext> _readPollQueue = new ConcurrentQueue<IoUringConnectionContext>();
         private readonly ConcurrentQueue<IoUringConnectionContext> _writePollQueue = new ConcurrentQueue<IoUringConnectionContext>();
         // TODO: One Dictionary would probably suffice
@@ -51,6 +54,40 @@ namespace IoUring.Transport.Internals
             _ring = new Ring(RingSize);
             SetupEventFd();
             _threadContext = new TransportThreadContext(options, _readPollQueue, _writePollQueue, _memoryPool, _eventfd);
+        }
+
+        public ValueTask<ConnectionContext> Connect(IPEndPoint endpoint)
+        {
+            var domain = endpoint.AddressFamily == AddressFamily.InterNetwork ? AF_INET : AF_INET6;
+            LinuxSocket s = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
+            var context = new OutboundConnectionContext(s, endpoint, _threadContext);
+
+            bool connectedSynchronously;
+            try
+            {
+                connectedSynchronously = s.TryConnectNonBlocking(endpoint);
+            }
+            catch (ErrnoException ex)
+            {
+                return new ValueTask<ConnectionContext>(Task.FromException<ConnectionContext>(ex));
+            }
+
+            if (connectedSynchronously)
+            {
+                context.LocalEndPoint = s.GetLocalAddress();
+                return new ValueTask<ConnectionContext>(context);
+            }
+
+            var tcs = new TaskCompletionSource<ConnectionContext>();
+            context.ConnectCompletion = tcs;
+
+            // Socket will become writable, once connect completed
+            var blocking = _threadContext.BlockingMode;
+            _clientSocketQueue.Enqueue(context);
+            if (blocking)
+                _threadContext.Unblock();
+
+            return new ValueTask<ConnectionContext>(tcs.Task);
         }
 
         public void Bind(IPEndPoint endpoint, ChannelWriter<ConnectionContext> acceptQueue)
@@ -86,6 +123,11 @@ namespace IoUring.Transport.Internals
                 {
                     _acceptSockets[context.Socket] = context;
                     Accept(context);
+                }
+                while (_clientSocketQueue.TryDequeue(out var context))
+                {
+                    _connections[context.Socket] = context;
+                    PollWrite(context);
                 }
                 while (_readPollQueue.TryDequeue(out var context))
                 {
@@ -241,7 +283,14 @@ namespace IoUring.Transport.Internals
                 }
                 else if ((c.userData & WritePollMask) == WritePollMask)
                 {
-                    CompleteWritePoll(context, c.result);
+                    if (context.ConnectCompletion == null)
+                    {
+                        CompleteWritePoll(context, c.result);
+                    }
+                    else
+                    {
+                        CompleteConnect(context, c.result);                        
+                    }
                 }
                 else if ((c.userData & ReadMask) == ReadMask)
                 {
@@ -288,7 +337,7 @@ namespace IoUring.Transport.Internals
             }
 
             Debug.WriteLine($"Accepted {(int)socket}");
-            var connectionContext = new IoUringConnectionContext(socket, context.EndPoint, clientEndpoint, _threadContext);
+            var connectionContext = new InboundConnectionContext(socket, context.EndPoint, clientEndpoint, _threadContext);
 
             _connections[socket] = connectionContext;
             context.AcceptQueue.TryWrite(connectionContext);
@@ -298,6 +347,30 @@ namespace IoUring.Transport.Internals
 
         AcceptAgain:
             Accept(context);
+        }
+
+        private void CompleteConnect(IoUringConnectionContext context, int result)
+        {
+            var completion = context.ConnectCompletion;
+            if (result < 0)
+            {
+                if (-result != EAGAIN || -result != EINTR)
+                {
+                    context.ConnectCompletion = null;
+                    completion.TrySetException(new ErrnoException(-result));
+                }
+
+                PollWrite(context);
+                return;
+            }
+
+            PollRead(context);
+            ReadFromApp(context); // TODO once data is available, another useless write poll is submitted
+
+            context.LocalEndPoint = context.Socket.GetLocalAddress();
+
+            context.ConnectCompletion = null;
+            completion.TrySetResult(context);
         }
 
         private void CompleteReadPoll(IoUringConnectionContext context, int result)
@@ -331,7 +404,7 @@ namespace IoUring.Transport.Internals
                 PollWrite(context);
                 return;
             }
-            
+
             Debug.WriteLine($"Completed write poll on {(int)context.Socket}");
             Write(context);
         }

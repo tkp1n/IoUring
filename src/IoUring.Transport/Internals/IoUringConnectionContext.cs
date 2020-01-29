@@ -10,7 +10,7 @@ using Tmds.Linux;
 
 namespace IoUring.Transport.Internals
 {
-    internal sealed unsafe class IoUringConnectionContext : TransportConnection
+    internal abstract unsafe class IoUringConnectionContext : TransportConnection
     {
         public const int ReadIOVecCount = 1;
         public const int WriteIOVecCount = 8;
@@ -27,12 +27,12 @@ namespace IoUring.Transport.Internals
         private readonly iovec* _iovec;
         private GCHandle _iovecHandle;
 
-        public IoUringConnectionContext(LinuxSocket socket, EndPoint server, EndPoint client, TransportThreadContext threadContext)
+        protected IoUringConnectionContext(LinuxSocket socket, EndPoint local, EndPoint remote, TransportThreadContext threadContext)
         {
             Socket = socket;
 
-            LocalEndPoint = server;
-            RemoteEndPoint = client;
+            LocalEndPoint = local;
+            RemoteEndPoint = remote;
 
             MemoryPool = threadContext.MemoryPool;
             _threadContext = threadContext;
@@ -74,7 +74,7 @@ namespace IoUring.Transport.Internals
         public ValueTask<ReadResult> ReadResult { get; set; }
         public Action OnFlushedToApp => _onOnFlushedToApp;
         public Action OnReadFromApp => _onReadFromApp;
-
+        public TaskCompletionSource<ConnectionContext> ConnectCompletion { get; set; }
         private void FlushedToApp(bool async)
         {
             var flushResult = FlushResult;
@@ -89,7 +89,7 @@ namespace IoUring.Transport.Internals
                 _threadContext.ReadPollQueue.Enqueue(this);
             }
         }
-        
+
         public void FlushedToAppSynchronously() => FlushedToApp(false);
         private void FlushedToAppAsynchronously() => FlushedToApp(true);
 
@@ -114,7 +114,7 @@ namespace IoUring.Transport.Internals
 
         private void ReadFromAppAsynchronously() => ReadFromApp(true);
         public void ReadFromAppSynchronously() => ReadFromApp(false);
-        
+
         public override ValueTask DisposeAsync()
         {
             // TODO: close pipes?
