@@ -6,15 +6,15 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals.Inbound
 {
-    internal class IoUringConnectionListener : IConnectionListener
+    internal class ConnectionListener : IConnectionListener
     {
         private readonly IoUringTransport _transport;
 
         private ChannelReader<ConnectionContext> _acceptQueue;
 
-        private IoUringConnectionListener(EndPoint endpoint, IoUringTransport transport)
+        private ConnectionListener(EndPoint endpoint, IoUringTransport transport)
         {
             EndPoint = endpoint;
             _transport = transport;
@@ -24,7 +24,7 @@ namespace IoUring.Transport
 
         public static ValueTask<IConnectionListener> Create(EndPoint endpoint, IoUringTransport transport)
         {
-            var listener = new IoUringConnectionListener(endpoint, transport);
+            var listener = new ConnectionListener(endpoint, transport);
             listener.Bind();
             return new ValueTask<IConnectionListener>(listener);
         }

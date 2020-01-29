@@ -1,12 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using IoUring.Transport.Internals.Inbound;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
-    internal class IoUringTransport : IAsyncDisposable
+    internal sealed class IoUringTransport : IAsyncDisposable
     {
         private object _lock;
         private TransportThread[] _transportThreads;

@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
-    public class EventFd
+    // TODO: replace with https://github.com/tmds/Tmds.LibC/pull/45
+    internal static class EventFd
     {
         public const int EFD_SEMAPHORE = 1;
         public const int EFD_CLOEXEC = 524288;

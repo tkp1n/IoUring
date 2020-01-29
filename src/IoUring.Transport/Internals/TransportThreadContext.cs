@@ -4,9 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using static Tmds.Linux.LibC;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
-    internal class TransportThreadContext
+    internal sealed class TransportThreadContext
     {
         private readonly int _eventFd;
         private bool _unsafeBlockingMode;

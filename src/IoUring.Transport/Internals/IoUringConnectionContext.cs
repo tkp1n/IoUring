@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
     internal sealed unsafe class IoUringConnectionContext : TransportConnection
     {

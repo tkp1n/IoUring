@@ -8,13 +8,14 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
+using IoUring.Transport.Internals.Inbound;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
-    internal class TransportThread
+    internal sealed class TransportThread
     {
         private const int RingSize = 32;
         private const int ListenBacklog = 128;

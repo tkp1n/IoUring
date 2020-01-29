@@ -1,11 +1,8 @@
-using System;
-using System.Diagnostics;
 using System.Net;
-using System.Net.Sockets;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
     internal readonly struct LinuxSocket
     {

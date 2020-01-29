@@ -1,4 +1,6 @@
 using System;
+using IoUring.Transport.Internals;
+using IoUring.Transport.Internals.Inbound;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +12,7 @@ namespace IoUring.Transport
         {
             serviceCollection.AddSingleton<IoUringTransport>();
             // TODO: Register IConnectionFactory for out-bound connections, once supported
-            serviceCollection.AddSingleton<IConnectionListenerFactory, IoUringConnectionListenerFactory>();
+            serviceCollection.AddSingleton<IConnectionListenerFactory, ConnectionListenerFactory>();
 
             return serviceCollection;
         }

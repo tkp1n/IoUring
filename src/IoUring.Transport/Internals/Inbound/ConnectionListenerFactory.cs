@@ -1,23 +1,20 @@
-using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals.Inbound
 {
-    internal class IoUringConnectionListenerFactory : IConnectionListenerFactory
+    internal sealed class ConnectionListenerFactory : IConnectionListenerFactory
     {
         private readonly IoUringTransport _ioUringTransport;
 
-        public IoUringConnectionListenerFactory(IoUringTransport ioUringTransport)
+        public ConnectionListenerFactory(IoUringTransport ioUringTransport)
         {
             _ioUringTransport = ioUringTransport;
         }
 
         public ValueTask<IConnectionListener> BindAsync(EndPoint endpoint, CancellationToken cancellationToken = default)
-            => IoUringConnectionListener.Create(endpoint, _ioUringTransport);
+            => ConnectionListener.Create(endpoint, _ioUringTransport);
     }
 }

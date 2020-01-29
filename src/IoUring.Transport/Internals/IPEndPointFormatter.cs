@@ -4,9 +4,9 @@ using System.Net.Sockets;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals
 {
-    public static class IPEndPointFormatter
+    internal static class IPEndPointFormatter
     {
         public static unsafe void ToSockAddr(this IPEndPoint inetAddress, sockaddr_storage* addr, out int length)
         {

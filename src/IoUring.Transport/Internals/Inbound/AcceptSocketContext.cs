@@ -2,9 +2,9 @@ using System.Net;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Connections;
 
-namespace IoUring.Transport
+namespace IoUring.Transport.Internals.Inbound
 {
-    internal class AcceptSocketContext
+    internal sealed class AcceptSocketContext
     {
         public AcceptSocketContext(LinuxSocket socket, IPEndPoint endPoint, ChannelWriter<ConnectionContext> acceptQueue)
         {
