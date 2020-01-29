@@ -10,6 +10,8 @@ namespace IoUring.Transport
     {
         public static IServiceCollection AddIoUringTransport(this IServiceCollection serviceCollection)
         {
+            if (!OsCompatibility.IsCompatible) return serviceCollection;
+
             serviceCollection.AddSingleton<IoUringTransport>();
             // TODO: Register IConnectionFactory for out-bound connections, once supported
             serviceCollection.AddSingleton<IConnectionListenerFactory, ConnectionListenerFactory>();
@@ -17,7 +19,7 @@ namespace IoUring.Transport
             return serviceCollection;
         }
 
-        public static IServiceCollection AddIoUringTransport(this IServiceCollection serviceCollection, Action<IoUringOptions> options)
-            => serviceCollection.Configure(options).AddIoUringTransport();
+        public static IServiceCollection AddIoUringTransport(this IServiceCollection serviceCollection, Action<IoUringOptions> options) => 
+            !OsCompatibility.IsCompatible ? serviceCollection : serviceCollection.Configure(options).AddIoUringTransport();
     }
 }
