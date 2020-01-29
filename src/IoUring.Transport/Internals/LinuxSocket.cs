@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Routing.Matching;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
@@ -17,6 +18,19 @@ namespace IoUring.Transport.Internals
         {
             var rv = setsockopt(_fd, level, option, (byte*) &value, 4);
             if (rv != 0) throw new ErrnoException(errno);
+        }
+
+        public unsafe bool TryConnectNonBlocking(IPEndPoint endPoint)
+        {
+            sockaddr_storage addr;
+            endPoint.ToSockAddr(&addr, out var length);
+            var rv = connect(_fd, (sockaddr*) &addr, length);
+            if (rv == 0) return true;
+
+            var result = errno;
+            if (result == EINPROGRESS) return false;
+            
+            throw new ErrnoException(result);
         }
 
         public unsafe void Bind(IPEndPoint endPoint)
@@ -52,6 +66,22 @@ namespace IoUring.Transport.Internals
 
             endPoint = IPEndPointFormatter.AddrToIpEndPoint(&addr);
             return rv;
+        }
+
+        public unsafe EndPoint GetLocalAddress()
+        {
+            sockaddr_storage addr;
+            socklen_t length = SizeOf.sockaddr_storage;
+            if (getsockname(_fd, (sockaddr*) &addr, &length) != 0) throw new ErrnoException(errno);
+            return IPEndPointFormatter.AddrToIpEndPoint(&addr);
+        }
+
+        public unsafe EndPoint GetPeerAddress()
+        {
+            sockaddr_storage addr;
+            socklen_t length = SizeOf.sockaddr_storage;
+            if (getpeername(_fd, (sockaddr*) &addr, &length) != 0) throw new ErrnoException(errno);
+            return IPEndPointFormatter.AddrToIpEndPoint(&addr);
         }
 
         public unsafe int GetReadableBytes() // TODO avoid if possible
