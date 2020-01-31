@@ -60,6 +60,10 @@ namespace IoUring.Transport.Internals
         {
             var domain = endpoint.AddressFamily == AddressFamily.InterNetwork ? AF_INET : AF_INET6;
             LinuxSocket s = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
+            if (_threadContext.Options.TcpNoDelay)
+            {
+                s.SetOption(SOL_TCP, TCP_NODELAY, 1);
+            }
             var context = new OutboundConnectionContext(s, endpoint, _threadContext);
 
             bool connectedSynchronously;
@@ -334,6 +338,11 @@ namespace IoUring.Transport.Internals
             {
                 Debug.WriteLine("Polled accept for nothing");
                 goto AcceptAgain;
+            }
+
+            if (_threadContext.Options.TcpNoDelay)
+            {
+                socket.SetOption(SOL_TCP, TCP_NODELAY, 1);
             }
 
             Debug.WriteLine($"Accepted {(int)socket}");

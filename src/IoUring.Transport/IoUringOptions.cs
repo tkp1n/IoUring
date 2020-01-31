@@ -7,5 +7,6 @@ namespace IoUring.Transport
     {
         public int ThreadCount { get; set; } = Math.Min(Environment.ProcessorCount, 16);
         public PipeScheduler ApplicationSchedulingMode { get; set; } = PipeScheduler.ThreadPool;
+        public bool TcpNoDelay { get; set; } = true;
     }
 }
