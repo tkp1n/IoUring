@@ -12,13 +12,13 @@ It's simplest (although not smartest) to set `memlock` to unlimited in [limits.c
 
 Experimental, managed ASP.NET Core Transport layer based on `io_uring`. This library is inspired by [kestrel-linux-transport](https://github.com/redhat-developer/kestrel-linux-transport/), a similar linux-specific transport layer based  on `epoll`.
 
-This transport layer currently only supports the server scenario ([`IConnectionListenerFactory`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.connections.iconnectionlistenerfactory?view=aspnetcore-3.1)) but will eventually support the client scenario ([`IConnectionFactory`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.connections.iconnectionfactory?view=aspnetcore-3.1)) as well.
+This transport layer supports both server ([`IConnectionListenerFactory`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.connections.iconnectionlistenerfactory?view=aspnetcore-3.1)) and client ([`IConnectionFactory`](https://docs.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.connections.iconnectionfactory?view=aspnetcore-3.1)) scenarios. It can be registered with `services.AddIoUringTransport();` in the `ConfigureServices` method.
 
 ## Design
 
 ### Preparation
 
-A (one day) configurable number of `TransportThread`s are started. Each thread opens an accept-socket on the server endpoint (IP and port) using the `SO_REUSEPORT` option. This allows all threads to accept connections and will let the kernel load balance between the accept-sockets.
+A configurable number of `TransportThread`s are started. Each thread opens an accept-socket on the server endpoint (IP and port) using the `SO_REUSEPORT` option. This allows all threads to accept connections and will let the kernel load balance between the accept-sockets.
 
 All threads are provided with the writing end of the same `Channel` to write accepted connections to. This `Channel` will be read from when `ConnectAsync` is invoked on the `IConnectionListener`. The `Channel` is unbounded and back-pressure to temporarily disable `accept`ing new connections is not yet supported.  
 
@@ -60,7 +60,6 @@ The socket file descriptor is used as index into a `Dictionary` to fetch the dat
 * Error handling in general. This is currently a **very** minimal PoC.
 * Polishing in general. Again, this is currently a **very** minimal PoC.
 * Testing with more than a simple demo app...
-* Ensure this transport isn't added on systems with a kernel version <5.4
 * Benchmark and optimize
 * Enable CPU affinity
 * Investigate whether the use of zero-copy options are profitable (vis-a-vis registered buffers)
@@ -69,7 +68,7 @@ The socket file descriptor is used as index into a `Dictionary` to fetch the dat
 ## Room for improvement regarding the use of `io_uring`
 
 * Create the largest possible (and reasonable) `io_uring`s. The max number of `entries` differs between kernel versions, perform auto-sensing.
-* Implement `accept`-ing new connections using `io_uring`, once supported on non-rc kerne versions (v5.5).
+* Implement `accept`-ing new connections using `io_uring`, once supported on non-rc kernel versions (v5.5).
 * Profit from `IORING_FEAT_NODROP` or implement safety measures to ensure no more than `io_uring_params->cq_entries` operations are in flight at any given moment in time.
 * Profit form `IORING_FEAT_SUBMIT_STABLE`. Currently the `iovec`s are allocated and fixed per connection to ensure they don't "move" during the execution of an operation.
 * Profit from `io_uring_register` and `IORING_REGISTER_BUFFERS` to speed-up IO.
