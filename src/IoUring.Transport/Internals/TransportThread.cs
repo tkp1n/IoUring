@@ -287,7 +287,7 @@ namespace IoUring.Transport.Internals
                 }
                 else if ((c.userData & WritePollMask) == WritePollMask)
                 {
-                    if (context.ConnectCompletion == null)
+                    if (context.ConnectCompletion is null)
                     {
                         CompleteWritePoll(context, c.result);
                     }
