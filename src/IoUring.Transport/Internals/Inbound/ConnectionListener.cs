@@ -46,7 +46,7 @@ namespace IoUring.Transport.Internals.Inbound
 
         public async ValueTask<ConnectionContext> AcceptAsync(CancellationToken cancellationToken = default)
         {
-            await foreach (var connection in _acceptQueue.ReadAllAsync(cancellationToken))
+            await foreach (var connection in _acceptQueue.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 return connection;
             }
