@@ -428,11 +428,15 @@ namespace IoUring.Transport.Internals
             }
             else if (result < 0)
             {
-                if (-result != EAGAIN || -result != EWOULDBLOCK || -result != EINTR)
+                if (-result == ECONNRESET)
+                {
+                    context.DisposeAsync();
+                } 
+                else if (-result != EAGAIN || -result != EWOULDBLOCK || -result != EINTR)
                 {
                     throw new ErrnoException(-result);
                 }
-                
+
                 Debug.WriteLine("Read for nothing");
             }
         }
@@ -477,7 +481,11 @@ namespace IoUring.Transport.Internals
                 }
                 else if (result < 0)
                 {
-                    if (-result != EAGAIN && -result != EWOULDBLOCK && -result != EINTR)
+                    if (-result == ECONNRESET)
+                    {
+                        context.DisposeAsync();
+                    } 
+                    else if (-result != EAGAIN && -result != EWOULDBLOCK && -result != EINTR)
                     {
                         throw new ErrnoException(-result);
                     }
