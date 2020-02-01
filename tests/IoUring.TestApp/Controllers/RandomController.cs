@@ -1,4 +1,4 @@
-﻿using System.Net.Http;
+﻿﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +9,7 @@ namespace IoUring.TestApp.Controllers
     public class RandomController : ControllerBase
     {
         private readonly IHttpClientFactory _clientFactory;
+        private readonly Task<string> t = Task.FromResult("Hello");
 
         public RandomController(IHttpClientFactory clientFactory)
         {
@@ -16,11 +17,9 @@ namespace IoUring.TestApp.Controllers
         }
 
         [HttpGet]
-        public async Task<string> Get()
+        public Task<string> Get()
         {
-            using var client = _clientFactory.CreateClient();
-            var result = await client.GetAsync("https://api.chucknorris.io/jokes/random");
-            return await result.Content.ReadAsStringAsync();
+            return t;
         }
     }
 }

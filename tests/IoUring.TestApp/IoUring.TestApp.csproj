@@ -8,4 +8,7 @@
       <ProjectReference Include="..\..\src\IoUring.Transport\IoUring.Transport.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="RedHat.AspNetCore.Server.Kestrel.Transport.Linux" Version="3.0.0-*" />
+    </ItemGroup>
 </Project>
