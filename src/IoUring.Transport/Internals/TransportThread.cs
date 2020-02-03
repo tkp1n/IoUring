@@ -345,28 +345,25 @@ namespace IoUring.Transport.Internals
 
         private void CompleteAcceptPoll(AcceptSocketContext context)
         {
-            var socket = context.Socket.Accept(out var clientEndpoint);
-            if (socket == -1)
+            LinuxSocket socket;
+    
+            while ((socket = context.Socket.Accept(out var clientEndpoint)) != -1)
             {
-                Debug.WriteLine("Polled accept for nothing");
-                goto AcceptAgain;
+                if (_threadContext.Options.TcpNoDelay)
+                {
+                    socket.SetOption(SOL_TCP, TCP_NODELAY, 1);
+                }
+
+                Debug.WriteLine($"Accepted {(int)socket}");
+                var connectionContext = new InboundConnectionContext(socket, context.EndPoint, clientEndpoint, _threadContext);
+
+                _connections[socket] = connectionContext;
+                context.AcceptQueue.TryWrite(connectionContext);
+
+                PollRead(connectionContext);
+                ReadFromApp(connectionContext);
             }
 
-            if (_threadContext.Options.TcpNoDelay)
-            {
-                socket.SetOption(SOL_TCP, TCP_NODELAY, 1);
-            }
-
-            Debug.WriteLine($"Accepted {(int)socket}");
-            var connectionContext = new InboundConnectionContext(socket, context.EndPoint, clientEndpoint, _threadContext);
-
-            _connections[socket] = connectionContext;
-            context.AcceptQueue.TryWrite(connectionContext);
-
-            PollRead(connectionContext);
-            ReadFromApp(connectionContext);
-
-        AcceptAgain:
             Accept(context);
         }
 
