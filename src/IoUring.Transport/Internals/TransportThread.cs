@@ -125,7 +125,7 @@ namespace IoUring.Transport.Internals
                 while (_acceptSocketQueue.TryDequeue(out var context))
                 {
                     _acceptSockets[context.Socket] = context;
-                    Accept(context);
+                    PollAccept(context);
                 }
                 while (_clientSocketQueue.TryDequeue(out var context))
                 {
@@ -171,7 +171,7 @@ namespace IoUring.Transport.Internals
             _ring.PrepareReadV(_eventfd, (iovec*) _eventfdIoVec.AddrOfPinnedObject(), 1, userData: EventFdPollMask);
         }
 
-        private void Accept(AcceptSocketContext acceptSocket)
+        private void PollAccept(AcceptSocketContext acceptSocket)
         {
             var socket = acceptSocket.Socket;
             Debug.WriteLine($"Adding accept on {(int)socket}");
@@ -364,7 +364,7 @@ namespace IoUring.Transport.Internals
                 ReadFromApp(connectionContext);
             }
 
-            Accept(context);
+            PollAccept(context);
         }
 
         private void CompleteConnect(IoUringConnectionContext context, int result)
