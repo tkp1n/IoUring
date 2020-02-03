@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using IoUring.Transport.Internals.Metrics;
 using static Tmds.Linux.LibC;
 
 namespace IoUring.Transport.Internals
@@ -39,6 +40,8 @@ namespace IoUring.Transport.Internals
 
         public unsafe void Unblock()
         {
+            IoUringTransportEventSource.Log.ReportEventFdWrite();
+
             byte* val = stackalloc byte[sizeof(ulong)];
             Unsafe.WriteUnaligned(val, 1UL);
             if (write(_eventFd, val, sizeof(ulong)) == -1)

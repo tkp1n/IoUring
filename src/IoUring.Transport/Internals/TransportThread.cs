@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using IoUring.Transport.Internals.Inbound;
+using IoUring.Transport.Internals.Metrics;
 using IoUring.Transport.Internals.Outbound;
 using Microsoft.AspNetCore.Connections;
 using Tmds.Linux;
@@ -251,7 +252,16 @@ namespace IoUring.Transport.Internals
         private void Flush()
         {
             var submitted = _ring.Submit();
-            var flushed = _ring.Flush(submitted, _threadContext.UnsafeBlockingMode ? 1u : 0u);
+            IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) submitted);
+
+            uint minComplete = 0;
+            if (_threadContext.UnsafeBlockingMode)
+            {
+                minComplete = 1;
+                IoUringTransportEventSource.Log.ReportBlockingEnter();
+            }
+
+            var flushed = _ring.Flush(submitted, minComplete);
             if (flushed == 0)
             {
                 _loopsWithoutSubmission++;
@@ -265,10 +275,10 @@ namespace IoUring.Transport.Internals
         private void Complete()
         {
             Completion c = default;
-            var sawCompletion = false;
+            var completions = 0;
             while (_ring.TryRead(ref c))
             {
-                sawCompletion = true;
+                completions++;
                 var socket = (int)c.userData;
                 if ((c.userData & EventFdPollMask) == EventFdPollMask)
                 {
@@ -306,7 +316,9 @@ namespace IoUring.Transport.Internals
                 }
             }
 
-            if (!sawCompletion)
+            IoUringTransportEventSource.Log.ReportCompletionsPerEnter(completions);
+
+            if (completions == 0)
             {
                 _loopsWithoutCompletion++;
                 if (_loopsWithoutSubmission >= 3 && _loopsWithoutCompletion >= 3 && !_threadContext.UnsafeBlockingMode)
