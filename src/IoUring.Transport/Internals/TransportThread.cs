@@ -87,10 +87,8 @@ namespace IoUring.Transport.Internals
             context.ConnectCompletion = tcs;
 
             // Socket will become writable, once connect completed
-            var blocking = _threadContext.BlockingMode;
             _clientSocketQueue.Enqueue(context);
-            if (blocking)
-                _threadContext.Unblock();
+            _threadContext.Notify();
 
             return new ValueTask<ConnectionContext>(tcs.Task);
         }
@@ -106,10 +104,8 @@ namespace IoUring.Transport.Internals
 
             var context = new AcceptSocketContext(s, endpoint, acceptQueue);
 
-            var blocking = _threadContext.BlockingMode;
             _acceptSocketQueue.Enqueue(context);
-            if (blocking)
-                _threadContext.Unblock();
+            _threadContext.Notify();
         }
 
         public void Run() => new Thread(obj => ((TransportThread)obj).Loop())

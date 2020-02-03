@@ -101,14 +101,8 @@ namespace IoUring.Transport.Internals
             if (async)
             {
                 Debug.WriteLine($"Read from app for {(int)Socket} asynchronously");
-                var blocking = _threadContext.BlockingMode;
                 _threadContext.WritePollQueue.Enqueue(this);
-
-                if (blocking)
-                {
-                    Debug.WriteLine("Attempting to unblock thread");
-                    _threadContext.Unblock();
-                }
+                _threadContext.Notify();
             }            
         }
 
