@@ -22,6 +22,8 @@ namespace IoUring.Transport.Internals
     {
         private const int RingSize = 32;
         private const int ListenBacklog = 128;
+        private const int MaxLoopsWithoutCompletion = 3;
+        private const int MaxLoopsWithoutSubmission = 3;
         private const ulong ReadMask =        0x100000000UL << 0;
         private const ulong WriteMask =       0x100000000UL << 1;
         private const ulong ReadPollMask =    0x100000000UL << 2;
@@ -317,7 +319,9 @@ namespace IoUring.Transport.Internals
             if (completions == 0)
             {
                 _loopsWithoutCompletion++;
-                if (_loopsWithoutSubmission >= 3 && _loopsWithoutCompletion >= 3 && !_threadContext.UnsafeBlockingMode)
+                if (_loopsWithoutSubmission >= MaxLoopsWithoutSubmission && 
+                    _loopsWithoutCompletion >= MaxLoopsWithoutCompletion && 
+                    !_threadContext.UnsafeBlockingMode)
                 {
                     // we might spin forever, if we don't act now
                     _threadContext.BlockingMode = true;
