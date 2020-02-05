@@ -20,7 +20,7 @@ namespace IoUring.Transport.Internals
 {
     internal sealed class TransportThread
     {
-        private const int RingSize = 32;
+        private const int RingSize = 4096;
         private const int ListenBacklog = 128;
         private const int MaxLoopsWithoutCompletion = 3;
         private const int MaxLoopsWithoutSubmission = 3;
