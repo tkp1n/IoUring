@@ -446,6 +446,10 @@ namespace IoUring.Transport.Internals
 
                 Debug.WriteLine("Read for nothing");
             }
+            else
+            {
+                // TODO: handle connection closed
+            }
         }
 
         private void FlushRead(IoUringConnectionContext context)
