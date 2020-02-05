@@ -10,8 +10,11 @@ namespace IoUring.Transport.Internals
 {
     internal sealed class TransportThreadContext
     {
+        private const int True = 1;
+        private const int False = 0;
+        
         private readonly int _eventFd;
-        private bool _unsafeBlockingMode;
+        private int _blockingMode;
 
         public TransportThreadContext(IoUringOptions options, ConcurrentQueue<IoUringConnectionContext> readPollQueue,
             ConcurrentQueue<IoUringConnectionContext> writePollQueue, MemoryPool<byte> memoryPool, int eventFd)
@@ -23,12 +26,12 @@ namespace IoUring.Transport.Internals
             MemoryPool = memoryPool;
         }
 
-        public bool UnsafeBlockingMode => _unsafeBlockingMode;
-
         public bool BlockingMode
         {
-            get => Volatile.Read(ref _unsafeBlockingMode);
-            set => Volatile.Write(ref _unsafeBlockingMode, value);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Volatile.Read(ref _blockingMode) == True;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => Volatile.Write(ref _blockingMode, value ? True : False);
         }
 
         public IoUringOptions Options { get; }
@@ -39,16 +42,19 @@ namespace IoUring.Transport.Internals
 
         public MemoryPool<byte> MemoryPool { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ShouldUnblock() => Interlocked.CompareExchange(ref _blockingMode, False, True) == True;
+
         public unsafe void Notify()
         {
-            if (!BlockingMode)
+            if (!ShouldUnblock())
             {
                 // If the transport thread is not (yet) in blocking mode, we have the guarantee, that it will read 
                 // from the queues one more time before actually blocking. Therefore, it is safe not to notify now.
                 return;
             }
 
-            // The transport thread reported he is (probably still) blocking. We therefore must notify it via writing
+            // The transport thread reported it is (probably still) blocking. We therefore must notify it by writing
             // to the eventfd established for that purpose.
 
             IoUringTransportEventSource.Log.ReportEventFdWrite();

@@ -253,13 +253,15 @@ namespace IoUring.Transport.Internals
             IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) submitted);
 
             uint minComplete = 0;
-            if (_threadContext.UnsafeBlockingMode)
+            if (_threadContext.BlockingMode)
             {
                 minComplete = 1;
                 IoUringTransportEventSource.Log.ReportBlockingEnter();
             }
 
             var flushed = _ring.Flush(submitted, minComplete);
+            _threadContext.BlockingMode = false;
+
             if (flushed == 0)
             {
                 _loopsWithoutSubmission++;
@@ -321,7 +323,7 @@ namespace IoUring.Transport.Internals
                 _loopsWithoutCompletion++;
                 if (_loopsWithoutSubmission >= MaxLoopsWithoutSubmission && 
                     _loopsWithoutCompletion >= MaxLoopsWithoutCompletion && 
-                    !_threadContext.UnsafeBlockingMode)
+                    !_threadContext.BlockingMode)
                 {
                     // we might spin forever, if we don't act now
                     _threadContext.BlockingMode = true;
@@ -330,10 +332,6 @@ namespace IoUring.Transport.Internals
             else
             {
                 _loopsWithoutCompletion = 0;
-                if (_threadContext.UnsafeBlockingMode)
-                {
-                    _threadContext.BlockingMode = false;
-                }
             }
         }
 
