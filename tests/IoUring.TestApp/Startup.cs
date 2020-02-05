@@ -32,8 +32,6 @@ namespace IoUring.TestApp
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
-
             app.UseRouting();
 
             app.UseAuthorization();
