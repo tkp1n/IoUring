@@ -456,12 +456,15 @@ namespace IoUring.Transport.Internals
             context.FlushResult = flushResult;
             if (flushResult.IsCompleted)
             {
+                // likely
                 Debug.WriteLine($"Flushed read from {(int)context.Socket} synchronously");
+                IoUringTransportEventSource.Log.ReportSyncFlushAsync();
                 context.FlushedToAppSynchronously();
                 PollRead(context);
             }
             else
             {
+                IoUringTransportEventSource.Log.ReportAsyncFlushAsync();
                 flushResult.GetAwaiter().UnsafeOnCompleted(context.OnFlushedToApp);
             }
         }
@@ -519,11 +522,14 @@ namespace IoUring.Transport.Internals
             if (readResult.IsCompleted)
             {
                 Debug.WriteLine($"Read from app for {(int)context.Socket} synchronously");
+                IoUringTransportEventSource.Log.ReportSyncReadAsync();
                 context.ReadFromAppSynchronously();
                 PollWrite(context);
             }
             else
             {
+                // likely
+                IoUringTransportEventSource.Log.ReportAsyncReadAsync();
                 readResult.GetAwaiter().UnsafeOnCompleted(context.OnReadFromApp);
             }
         }

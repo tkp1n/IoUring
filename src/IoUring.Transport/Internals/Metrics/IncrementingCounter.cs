@@ -16,5 +16,7 @@ namespace IoUring.Transport.Internals.Metrics
         private double Counter() => _counter;
 
         public void Increment() => Interlocked.Increment(ref _counter);
+
+        public void Decrement() => Interlocked.Decrement(ref _counter);
     }
 }
