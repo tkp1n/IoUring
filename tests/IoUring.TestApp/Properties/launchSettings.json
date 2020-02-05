@@ -7,7 +7,7 @@
   "profiles": {
     "IoUring.TestApp": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "random",
       "applicationUrl": "https://localhost:5001",
       "environmentVariables": {
