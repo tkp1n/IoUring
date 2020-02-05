@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Tmds.Linux;
 using IoUring.Internal;
 using static Tmds.Linux.LibC;
@@ -433,6 +434,7 @@ namespace IoUring
             SubmissionOption options = SubmissionOption.None)
             => TryPrepareSendRecvMsg(IORING_OP_RECVMSG, fd, msg, flags, userData, options);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
@@ -453,6 +455,7 @@ namespace IoUring
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryPrepareReadWriteFixed(byte op, int fd, void* buf, size_t count, int index, off_t offset, ulong userData, SubmissionOption options)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
@@ -473,6 +476,7 @@ namespace IoUring
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryPrepareSendRecvMsg(byte op, int fd, msghdr* msg, int flags, ulong userData,
             SubmissionOption options)
         {
