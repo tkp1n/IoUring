@@ -148,7 +148,7 @@ namespace IoUring.Transport.Internals
 
         private unsafe void SetupEventFd()
         {
-            int res = EventFd.eventfd(0, EventFd.EFD_SEMAPHORE);
+            int res = eventfd(0, EFD_SEMAPHORE);
             if (res == -1) throw new ErrnoException(errno);
             _eventfd = res;
 
