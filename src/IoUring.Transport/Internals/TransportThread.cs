@@ -223,6 +223,7 @@ namespace IoUring.Transport.Internals
                 context.DisposeAsync();
                 _connections.Remove(socket);
                 socket.Close();
+                return;
             }
 
             var writeHandles = context.WriteHandles;
