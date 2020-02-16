@@ -434,6 +434,39 @@ namespace IoUring
             SubmissionOption options = SubmissionOption.None)
             => TryPrepareSendRecvMsg(IORING_OP_RECVMSG, fd, msg, flags, userData, options);
 
+        /// <summary>
+        /// Adds a timeout to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="ts">The amount of time after which the timeout should trigger if less than <paramref name="count"/> submissions completed.</param>
+        /// <param name="count">The amount of completed submissions after which the timeout should trigger</param>
+        /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0,
+            SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareTimeout(ts, count, timeoutOptions, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a timeout to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="ts">The amount of time after which the timeout should trigger if less than <paramref name="count"/> submissions completed.</param>
+        /// <param name="count">The amount of completed submissions after which the timeout should trigger</param>
+        /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0,
+            SubmissionOption options = SubmissionOption.None) 
+            => TryPrepareReadWrite(IORING_OP_TIMEOUT, -1, ts, 1, count, (int) timeoutOptions, userData, options);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
