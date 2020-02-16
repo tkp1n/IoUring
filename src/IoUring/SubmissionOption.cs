@@ -18,8 +18,11 @@ namespace IoUring
         /// <summary>
         /// Marks items of a chain that must be executed sequentially.
         /// </summary>
-        Link = 1 << 2 // IOSQE_IO_LINK
-        
-        // TODO: Add other new constants
+        Link = 1 << 2, // IOSQE_IO_LINK
+
+        /// <summary>
+        /// Like <see cref="Link"/>, but it doesn't sever regardless of the completion result.
+        /// </summary>
+        HardLink = 1 << 3 // IOSQE_IO_HARDLINK
     }
 }

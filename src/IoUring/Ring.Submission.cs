@@ -467,6 +467,156 @@ namespace IoUring
             SubmissionOption options = SubmissionOption.None) 
             => TryPrepareReadWrite(IORING_OP_TIMEOUT, -1, ts, 1, count, (int) timeoutOptions, userData, options);
 
+        /// <summary>
+        /// Adds the removal of a timeout to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="timeoutUserData">userData of the timeout submission that should be removed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareTimeoutRemove(timeoutUserData, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add the removal of a timeout to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="timeoutUserData">userData of the timeout submission that should be removed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+            => TryPrepareReadWrite(IORING_OP_TIMEOUT_REMOVE, -1, (void*) timeoutUserData, 0, 0, 0, userData, options);
+
+        /// <summary>
+        /// Adds an accept to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to accept on</param>
+        /// <param name="addr">(out) the address of the connected client.</param>
+        /// <param name="addrLen">(out) the length of the address</param>
+        /// <param name="flags">Flags as per accept4</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareAccept(fd, addr, addrLen, flags, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add an accept to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to accept on</param>
+        /// <param name="addr">(out) the address of the connected client.</param>
+        /// <param name="addrLen">(out) the length of the address</param>
+        /// <param name="flags">Flags as per accept4</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+            => TryPrepareReadWrite(IORING_OP_ACCEPT, fd, addr, 0, (long) addrLen, flags, userData, options);
+
+        /// <summary>
+        /// Adds the cancellation of a previously submitted item to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="opUserData">userData of the operation to cancel</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareCancel(opUserData, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add the cancellation of a previously submitted item to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="opUserData">userData of the operation to cancel</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+            => TryPrepareReadWrite(IORING_OP_ASYNC_CANCEL, -1, (void*) opUserData, 0, 0, 0, userData, options);
+
+        /// <summary>
+        /// Adds a connect to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">The socket to connect on</param>
+        /// <param name="addr">The address to connect to</param>
+        /// <param name="addrLen">The length of the address</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareConnect(fd, addr, addrLen, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a connect to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">The socket to connect on</param>
+        /// <param name="addr">The address to connect to</param>
+        /// <param name="addrLen">The length of the address</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            return TryPrepareReadWrite(IORING_OP_CONNECT, fd, addr, 0, (uint) addrLen, 0, userData, options);
+        }
+
+        /// <summary>
+        /// Adds a timeout to a previously prepared linked item to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="ts">The amount of time after which the timeout should trigger</param>
+        /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!TryPrepareLinkTimeout(ts, timeoutOptions, userData, options))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a timeout to a previously prepared linked item to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="ts">The amount of time after which the timeout should trigger</param>
+        /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+            => TryPrepareReadWrite(IORING_OP_LINK_TIMEOUT, -1, ts, 1, 0, (int) timeoutOptions, userData, options);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
