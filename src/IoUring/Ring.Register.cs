@@ -48,6 +48,24 @@ namespace IoUring
             => Unregister(IORING_UNREGISTER_FILES);
 
         /// <summary>
+        /// Updates the set of previously registered files.
+        /// </summary>
+        /// <param name="off">Offset within the original array at which the update shall occur</param>
+        /// <param name="files">The update set of files</param>
+        /// <param name="nrFiles">The number of files to update</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public void UpdateRegisteredFiles(uint off, int* files, int nrFiles)
+        {
+            if (nrFiles < 0) throw new ArgumentOutOfRangeException(nameof(nrFiles), "must be non-negative");
+
+            io_uring_files_update up;
+            up.offset = off;
+            up.fds = files;
+
+            Register(IORING_REGISTER_FILES_UPDATE, &up, (uint) nrFiles);
+        }
+
+        /// <summary>
         /// Registers an event with the kernel to reduce per I/O overhead.
         /// </summary>
         /// <param name="fd">Event file descriptor to register</param>

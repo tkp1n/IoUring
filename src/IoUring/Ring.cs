@@ -11,6 +11,7 @@ namespace IoUring
     public sealed unsafe partial class Ring : IDisposable
     {
         private readonly uint _flags;
+        private readonly uint _features;
         private readonly CloseHandle _ringFd;
 
         private static int Setup(uint entries, io_uring_params* p, RingOptions? options)
@@ -103,6 +104,7 @@ namespace IoUring
             _ringFd.SetHandle(fd);
 
             _flags = p.flags;
+            _features = p.features;
 
             var (sqSize, cqSize) = GetSize(&p);
 
@@ -136,6 +138,17 @@ namespace IoUring
         /// Whether the kernel to polls for I/O completions (instead of using interrupt driven I/O).
         /// </summary>
         public bool IoPollingEnabled => (_flags & IORING_SETUP_IOPOLL) != 0;
+
+        /// <summary>
+        /// Whether protection against Completion Queue overflow is supported by the kernel.
+        /// </summary>
+        public bool SupportsNoDrop => (_features & IORING_FEAT_NODROP) != 0;
+
+        /// <summary>
+        /// Whether the application can be certain, that any data needed for async offload has been consumed by the
+        /// kernel, when the Submission Queue Entry is consumed.
+        /// </summary>
+        public bool SupportsStableSubmits => (_features & IORING_FEAT_SUBMIT_STABLE) != 0;
 
         /// <summary>
         /// Returns the maximum number of events the Submission Queue can contain
