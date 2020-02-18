@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
+using Tmds.Linux;
 
 namespace IoUring
 {
@@ -9,9 +11,19 @@ namespace IoUring
     {
         public int Errno { get; }
 
-        public ErrnoException(int errno) : base($"ERRNO: {errno}")
+        public ErrnoException(int errno) : base(GetErrorMessage(errno))
         {
             Errno = errno;
+        }
+
+        private unsafe static string GetErrorMessage(int errno)
+        {
+            int bufferLength = 1024;
+            byte* buffer = stackalloc byte[bufferLength];
+
+            int rv = LibC.strerror_r(errno, buffer, bufferLength);
+
+            return rv == 0 ? Marshal.PtrToStringAnsi((IntPtr)buffer)! : $"ERRNO: {errno}";
         }
     }
 }
