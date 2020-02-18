@@ -1,0 +1,25 @@
+name: .NET Core
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.101
+    - name: Build with dotnet
+      run: dotnet build
+    - name: Pack
+      if: github.ref == 'refs/heads/master'
+      working-directory: ./src/IoUring
+      run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
+    - name: Publish (MyGet)
+      if: github.ref == 'refs/heads/master'
+      working-directory: ./src/IoUring
+      run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
