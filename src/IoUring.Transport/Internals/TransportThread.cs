@@ -275,9 +275,8 @@ namespace IoUring.Transport.Internals
 
         private void Complete()
         {
-            Completion c = default;
             var completions = 0;
-            while (_ring.TryRead(ref c))
+            while (_ring.TryRead(out Completion c))
             {
                 completions++;
                 var socket = (int)c.userData;

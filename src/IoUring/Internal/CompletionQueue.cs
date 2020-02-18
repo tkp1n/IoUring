@@ -66,9 +66,9 @@ namespace IoUring.Internal
                 cqes: Add<io_uring_cqe>(ringBase, offsets->cqes)
             );
 
-        public bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result)
+        public bool TryRead(int ringFd, bool kernelIoPolling, out Completion result)
         {
-            return TryRead(ringFd, kernelIoPolling, ref result, true);
+            return TryRead(ringFd, kernelIoPolling, out result, true);
         }
 
         public Completion Read(int ringFd, bool kernelIoPolling)
@@ -83,7 +83,7 @@ namespace IoUring.Internal
                     ThrowErrnoException();
                 }
 
-                if (TryRead(ringFd, kernelIoPolling, ref completion, true))
+                if (TryRead(ringFd, kernelIoPolling, out completion, true))
                 {
                     return completion;
                 }
@@ -96,7 +96,7 @@ namespace IoUring.Internal
             while (read < results.Length)
             {
                 // Head is moved below to avoid memory barrier in loop
-                if (TryRead(read, kernelIoPolling, ref results[read], false))
+                if (TryRead(read, kernelIoPolling, out results[read], false))
                 {
                     read++;
                     continue; // keep on reading without syscall-ing
@@ -113,7 +113,7 @@ namespace IoUring.Internal
             Volatile.Write(ref *_head, *_headInternal);
         }
 
-        private bool TryRead(int ringFd, bool kernelIoPolling, ref Completion result, bool bumpHead)
+        private bool TryRead(int ringFd, bool kernelIoPolling, out Completion result, bool bumpHead)
         {
             uint head = *_head;
 
@@ -142,6 +142,7 @@ namespace IoUring.Internal
 
             if (!eventsAvailable)
             {
+                result = default;
                 return false;
             }
 

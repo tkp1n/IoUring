@@ -19,8 +19,7 @@ namespace IoUring.Tests
             Assert.Equal(1u, r.Submit());
             Assert.Equal(1u, r.Flush(1));
 
-            Completion c = default;
-            Assert.True(r.TryRead(ref c));
+            Assert.True(r.TryRead(out Completion c));
             Assert.Equal(0, c.result);
             Assert.Equal(123ul, c.userData);
         }
@@ -39,10 +38,9 @@ namespace IoUring.Tests
             Assert.Equal(i, r.Submit());
             Assert.Equal(i, r.Flush(i));
 
-            Completion c = default;
             for (uint j = 0; j < i; j++)
             {
-                Assert.True(r.TryRead(ref c));
+                Assert.True(r.TryRead(out Completion c));
                 Assert.Equal(0, c.result);
                 Assert.Equal(j, c.userData);
             }
@@ -78,19 +76,18 @@ namespace IoUring.Tests
             using var r = new Ring(8);
 
             uint i;
-            Completion c = default;
             for (i = 0; i < 8; i++)
             {
                 Assert.True(r.TryPrepareNop(i));
                 Assert.Equal(1u, r.Submit());
                 Assert.Equal(1u, r.Flush(1));
 
-                Assert.True(r.TryRead(ref c));
+                Assert.True(r.TryRead(out Completion c));
                 Assert.Equal(0, c.result);
                 Assert.Equal(i, c.userData);
             }
 
-            Assert.False(r.TryRead(ref c));
+            Assert.False(r.TryRead(out Completion c2));
         }
 
         [Fact]
@@ -124,11 +121,10 @@ namespace IoUring.Tests
             var reader = new Thread(state =>
             {
                 var ring = (Ring) state;
-                Completion c = default;
                 ulong i = 0;
                 while (i < events)
                 {
-                    while (i < events & ring.TryRead(ref c))
+                    while (i < events & ring.TryRead(out Completion c))
                     {
                         Assert.Equal(0, c.result);
                         Assert.Equal(i, c.userData);
@@ -137,7 +133,7 @@ namespace IoUring.Tests
 
                     if (i < events)
                     {
-                        c = ring.Read();
+                        Completion c = ring.Read();
                         Assert.Equal(0, c.result);
                         Assert.Equal(i, c.userData);
                         i++;

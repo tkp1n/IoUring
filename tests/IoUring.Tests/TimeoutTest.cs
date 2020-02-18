@@ -23,11 +23,11 @@ namespace IoUring.Tests
             Assert.Equal(1u, r.Flush(1u));
 
             Completion c = default;
-            Assert.False(r.TryRead(ref c));
+            Assert.False(r.TryRead(out c));
 
             Thread.Sleep(TimeSpan.FromSeconds(1));
 
-            Assert.True(r.TryRead(ref c));
+            Assert.True(r.TryRead(out c));
             Assert.Equal(-ETIME, c.result);
         }
 
@@ -46,16 +46,16 @@ namespace IoUring.Tests
             Assert.Equal(1u, r.Flush(1u));
 
             Completion c = default;
-            Assert.False(r.TryRead(ref c));
+            Assert.False(r.TryRead(out c));
 
             r.TryPrepareNop(userData: 123);
             r.Flush(r.Submit());
 
-            Assert.True(r.TryRead(ref c));
+            Assert.True(r.TryRead(out c));
             Assert.Equal(0, c.result);
             Assert.Equal(123u, c.userData);
 
-            Assert.True(r.TryRead(ref c));
+            Assert.True(r.TryRead(out c));
             Assert.Equal(0, c.result);
         }
     }
