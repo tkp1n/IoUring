@@ -10,6 +10,10 @@ namespace IoUring.Tests
         public void SmokeTest()
         {
             var r = new Ring(8);
+
+            Assert.Equal(8, r.SubmissionQueueSize);
+            Assert.Equal(16, r.CompletionQueueSize);
+
             Assert.NotNull(r);
             Assert.False(r.IoPollingEnabled);
             Assert.False(r.SubmissionPollingEnabled);

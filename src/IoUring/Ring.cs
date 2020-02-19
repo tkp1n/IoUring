@@ -120,8 +120,8 @@ namespace IoUring
                 throw;
             }
 
-            SubmissionQueueSize = (int) sqSize;
-            CompletionQueueSize = (int) cqSize;
+            SubmissionQueueSize = (int) p.sq_entries;
+            CompletionQueueSize = (int) p.cq_entries;
         }
 
         /// <summary>
