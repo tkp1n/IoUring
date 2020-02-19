@@ -88,7 +88,7 @@ namespace IoUring.Internal
                 sqes: elements
             );
 
-        public bool IsFull => _tailInternal - _headInternal > *_ringEntries;
+        public bool IsFull => _tailInternal - _headInternal >= *_ringEntries;
 
         public uint EntriesToSubmit => _tailInternal - _headInternal;
 
