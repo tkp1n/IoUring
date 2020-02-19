@@ -702,20 +702,6 @@ namespace IoUring
         public uint Flush(uint toFlush, uint minComplete = 0)
             => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete);
 
-        private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
-        {
-            sqe = _sq.NextSubmissionQueueEntry();
-            if (sqe == NULL)
-            {
-                if (Flush(Submit()) > 0)
-                {
-                    // Flushed one more item, retry to get an entry
-                    sqe = _sq.NextSubmissionQueueEntry();
-                    if (sqe == NULL) return false;
-                }
-            }
-
-            return true;
-        }
+        private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe) => (sqe = _sq.NextSubmissionQueueEntry()) != NULL;
     }
 }
