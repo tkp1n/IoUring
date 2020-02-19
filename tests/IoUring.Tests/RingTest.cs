@@ -179,6 +179,24 @@ namespace IoUring.Tests
             reader.Join();
             writer.Join();
         }
+
+        [Fact]
+        public void DetectOverSubmit()
+        {
+            var r = new Ring(8);
+
+            for (int i = 0; i < r.SubmissionQueueSize; i++)
+            {
+                r.PrepareNop();
+            }
+
+            Assert.Throws<SubmissionQueueFullException>(() =>
+            {
+                r.PrepareNop();
+            });
+            
+            Assert.False(r.TryPrepareNop());
+        }
     }
 }
 
