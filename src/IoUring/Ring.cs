@@ -160,6 +160,11 @@ namespace IoUring
         /// </summary>
         public int CompletionQueueSize { get; }
 
+        /// <summary>
+        /// Returns the number of un-submitted entries in the Submission Queue
+        /// </summary>
+        public int EntriesToSubmit => (int) _sq.EntriesToSubmit;
+
         /// <inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
