@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using Tmds.Linux;
+using static Tmds.Linux.LibC;
 
 namespace IoUring
 {
@@ -18,10 +18,10 @@ namespace IoUring
 
         private unsafe static string GetErrorMessage(int errno)
         {
-            int bufferLength = 1024;
+            const int bufferLength = 1024;
             byte* buffer = stackalloc byte[bufferLength];
 
-            int rv = LibC.strerror_r(errno, buffer, bufferLength);
+            int rv = strerror_r(errno, buffer, bufferLength);
 
             return rv == 0 ? Marshal.PtrToStringAnsi((IntPtr)buffer)! : $"ERRNO: {errno}";
         }
