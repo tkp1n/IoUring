@@ -66,6 +66,11 @@ namespace IoUring.Internal
                 cqes: Add<io_uring_cqe>(ringBase, offsets->cqes)
             );
 
+        /// <summary>
+        /// Returns the number of entries in the Completion Queue.
+        /// </summary>
+        public uint Entries => *_ringEntries;
+
         public bool TryRead(int ringFd, bool kernelIoPolling, out Completion result)
         {
             return TryRead(ringFd, kernelIoPolling, out result, true);
