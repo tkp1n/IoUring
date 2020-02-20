@@ -163,7 +163,12 @@ namespace IoUring
         /// <summary>
         /// Returns the number of un-submitted entries in the Submission Queue
         /// </summary>
-        public int EntriesToSubmit => (int) _sq.EntriesToSubmit;
+        public int SubmissionEntriesUsed => (int) _sq.EntriesToSubmit;
+
+        /// <summary>
+        /// Returns the number of free entries in the Submission Queue
+        /// </summary>
+        public int SubmissionEntriesAvailable => (int) _sq.EntriesToPrepare;
 
         /// <inheritdoc cref="IDisposable"/>
         public void Dispose()

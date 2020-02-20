@@ -88,9 +88,19 @@ namespace IoUring.Internal
                 sqes: elements
             );
 
-        public bool IsFull => _tailInternal - _headInternal >= *_ringEntries;
+        /// <summary>
+        /// Returns the number of entries in the Submission Queue that can be used to prepare new submissions
+        /// prior to the next <see cref="Submit"/> (and <see cref="Flush"/>).
+        /// </summary>
+        public uint EntriesToPrepare => *_ringEntries - (_tailInternal - _headInternal);
 
+        /// <summary>
+        /// Returns the number of prepared Submission Queue Entries that will be submitted to the kernel during
+        /// the next <see cref="Submit"/> (and <see cref="Flush"/>).
+        /// </summary>
         public uint EntriesToSubmit => _tailInternal - _headInternal;
+
+        private bool IsFull => _tailInternal - _headInternal >= *_ringEntries;
 
         /// <summary>
         /// Finds the next Submission Queue Entry to be written to. The entry will be initialized with zeroes.
