@@ -28,7 +28,8 @@ namespace IoUring.Tests
             Assert.Equal(7, r.SubmissionEntriesAvailable);
 
             Assert.Equal(1u, r.Submit());
-            Assert.Equal(1u, r.Flush(1));
+            Assert.True(r.Flush(1, out var flushed));
+            Assert.Equal(1u, flushed);
 
             Assert.Equal(0, r.SubmissionEntriesUsed);
             Assert.Equal(8, r.SubmissionEntriesAvailable);
@@ -50,7 +51,8 @@ namespace IoUring.Tests
             }
 
             Assert.Equal(i, r.Submit());
-            Assert.Equal(i, r.Flush(i));
+            Assert.True(r.Flush(i, out var flushed));
+            Assert.Equal(i, flushed);
 
             for (uint j = 0; j < i; j++)
             {
@@ -72,7 +74,8 @@ namespace IoUring.Tests
             }
 
             Assert.Equal(i, r.Submit());
-            Assert.Equal(i, r.Flush(i));
+            Assert.True(r.Flush(i, out var flushed));
+            Assert.Equal(i, flushed);
 
             Span<Completion> completions = stackalloc Completion[(int)i];
 
@@ -94,14 +97,15 @@ namespace IoUring.Tests
             {
                 Assert.True(r.TryPrepareNop(i));
                 Assert.Equal(1u, r.Submit());
-                Assert.Equal(1u, r.Flush(1));
+                Assert.True(r.Flush(1, out var flushed));
+                Assert.Equal(1u, flushed);
 
                 Assert.True(r.TryRead(out Completion c));
                 Assert.Equal(0, c.result);
                 Assert.Equal(i, c.userData);
             }
 
-            Assert.False(r.TryRead(out Completion c2));
+            Assert.False(r.TryRead(out _));
         }
 
         [Fact]
@@ -116,7 +120,8 @@ namespace IoUring.Tests
             }
 
             Assert.Equal(i, r.Submit());
-            Assert.Equal(i, r.Flush(i));
+            Assert.True(r.Flush(i, out var flushed));
+            Assert.Equal(i, flushed);
 
             for (uint j = 0; j < i; j++)
             {
@@ -177,8 +182,8 @@ namespace IoUring.Tests
 
                     if (toFlush % 16 == 0)
                     {
-                        ring.Flush(toFlush);
-                        toFlush = 0;
+                        Assert.True(ring.Flush(toFlush, out var flushed));
+                        toFlush -= flushed;
                     }
                 }
             });

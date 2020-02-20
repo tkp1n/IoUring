@@ -172,12 +172,13 @@ namespace IoUring.Internal
             return true;
         }
 
-        public uint Flush(int ringFd, bool kernelSqPolling, uint toFlush, uint minComplete)
+        public bool Flush(int ringFd, bool kernelSqPolling, uint toFlush, uint minComplete, out uint operationsFlushed)
         {
             if (!ShouldFlush(kernelSqPolling, out uint enterFlags))
             {
                 // Assume all Entries are known to the kernel (flushed)
-                return toFlush;
+                operationsFlushed = toFlush;
+                return true;
             }
 
             if (minComplete > 0) enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
@@ -185,7 +186,21 @@ namespace IoUring.Internal
             int res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL);
             if (res < 0)
             {
-                ThrowErrnoException();
+                int err = errno;
+                if (err == EAGAIN || err == EBUSY)
+                {
+                    operationsFlushed = default;
+                    return false; // Application must consume completions before entering again
+                }
+
+                if (err == EINTR) // Undocumented but reported to have happened
+                {
+                    while (
+                        (res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL)) < 0 &&
+                        (err = errno) == EINTR) { } // retry until no longer interrupted
+                }
+
+                ThrowErrnoException(err);
             }
 
             // Memory barrier is sadly only required to reliably fetch number of dropped submissions (typically zero)
@@ -195,7 +210,8 @@ namespace IoUring.Internal
                 ThrowSubmissionEntryDroppedException(dropped);
             }
 
-            return (uint)res;
+            operationsFlushed = (uint)res;
+            return true;
         }
     }
 }
