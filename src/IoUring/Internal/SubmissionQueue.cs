@@ -97,8 +97,13 @@ namespace IoUring.Internal
         /// If the Submission Queue is full, a null-pointer is returned.
         /// </summary>
         /// <returns>The next Submission Queue Entry to be written to or null if the Queue is full</returns>
-        public io_uring_sqe* NextSubmissionQueueEntry()
+        public io_uring_sqe* NextSubmissionQueueEntry(bool kernelSqPolling)
         {
+            if (kernelSqPolling)
+            {
+                _headInternal = Volatile.Read(ref *_head);
+            }
+
             if (IsFull)
             {
                 return (io_uring_sqe*) NULL;
@@ -152,9 +157,9 @@ namespace IoUring.Internal
             return true;
         }
 
-        public uint Flush(int ringFd, bool kernelIoPolling, uint toFlush, uint minComplete)
+        public uint Flush(int ringFd, bool kernelSqPolling, uint toFlush, uint minComplete)
         {
-            if (!ShouldFlush(kernelIoPolling, out uint enterFlags))
+            if (!ShouldFlush(kernelSqPolling, out uint enterFlags))
             {
                 // Assume all Entries are known to the kernel (flushed)
                 return toFlush;
