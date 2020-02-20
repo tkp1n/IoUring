@@ -20,7 +20,8 @@ namespace IoUring.Tests
             Assert.True(r.TryPrepareTimeout(&ts));
 
             Assert.Equal(1u, r.Submit());
-            Assert.Equal(1u, r.Flush(1u));
+            Assert.True(r.Flush(1u, out var flushed));
+            Assert.Equal(1u, flushed);
 
             Completion c = default;
             Assert.False(r.TryRead(out c));
@@ -43,13 +44,16 @@ namespace IoUring.Tests
             Assert.True(r.TryPrepareTimeout(&ts));
 
             Assert.Equal(1u, r.Submit());
-            Assert.Equal(1u, r.Flush(1u));
+            Assert.True(r.Flush(1u, out var flushed));
+            Assert.Equal(1u, flushed);
 
             Completion c = default;
             Assert.False(r.TryRead(out c));
 
             r.TryPrepareNop(userData: 123);
-            r.Flush(r.Submit());
+            var toFlush = r.Submit();
+            Assert.True(r.Flush(toFlush, out flushed));
+            Assert.Equal(toFlush, flushed);
 
             Assert.True(r.TryRead(out c));
             Assert.Equal(0, c.result);

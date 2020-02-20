@@ -260,7 +260,11 @@ namespace IoUring.Transport.Internals
                 IoUringTransportEventSource.Log.ReportBlockingEnter();
             }
 
-            var flushed = _ring.Flush(submitted, minComplete);
+            uint flushed;
+            while (!_ring.Flush(submitted, minComplete, out flushed))
+            {
+                Complete(); // TODO: Consider not appearing blocked while reaping completions
+            }
             _threadContext.BlockingMode = false;
 
             if (flushed == 0)

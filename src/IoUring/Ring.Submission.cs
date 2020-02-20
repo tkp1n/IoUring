@@ -694,13 +694,25 @@ namespace IoUring
         /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
         /// <param name="toFlush">Number of un-flushed Submission Queue Entries</param>
+        /// <param name="operationsFlushed">(out) The number of flushed Submission Queue Entries</param>
         /// <param name="minComplete">The number of completed Submission Queue Entries required before returning (default = 0)</param>
-        /// <returns>The number of flushed Submission Queue Entries</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="minComplete"/> > <paramref name="toFlush"/></exception>
+        /// <returns><code>true</code> if the flush was successful. <code>false</code> if the application must consume completions before attempting to flush again.</returns>
         /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
-        /// <exception cref="ErrnoException">On negative result from syscall</exception>
-        public uint Flush(uint toFlush, uint minComplete = 0)
-            => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete);
+        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
+        public bool Flush(uint toFlush, uint minComplete, out uint operationsFlushed)
+            => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete, out operationsFlushed);
+
+        /// <summary>
+        /// Notifies the kernel of the availability of new Submission Queue Entries.
+        /// This typically requires a syscall and should be deferred as long as possible.
+        /// </summary>
+        /// <param name="toFlush">Number of un-flushed Submission Queue Entries</param>
+        /// <param name="operationsFlushed">(out) The number of flushed Submission Queue Entries</param>
+        /// <returns><code>true</code> if the flush was successful. <code>false</code> if the application must consume completions before attempting to flush again.</returns>
+        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
+        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
+        public bool Flush(uint toFlush, out uint operationsFlushed)
+            => Flush(toFlush, 0, out operationsFlushed);
 
         private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
             => (sqe = _sq.NextSubmissionQueueEntry(SubmissionPollingEnabled)) != NULL;
