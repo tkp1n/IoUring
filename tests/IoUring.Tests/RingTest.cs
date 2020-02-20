@@ -14,14 +14,24 @@ namespace IoUring.Tests
             Assert.Equal(8, r.SubmissionQueueSize);
             Assert.Equal(16, r.CompletionQueueSize);
 
+            Assert.Equal(0, r.SubmissionEntriesUsed);
+            Assert.Equal(8, r.SubmissionEntriesAvailable);
+
             Assert.NotNull(r);
             Assert.False(r.IoPollingEnabled);
             Assert.False(r.SubmissionPollingEnabled);
             Assert.False(r.SubmissionQueuePollingCpuAffinity);
 
             Assert.True(r.TryPrepareNop(123ul));
+
+            Assert.Equal(1, r.SubmissionEntriesUsed);
+            Assert.Equal(7, r.SubmissionEntriesAvailable);
+
             Assert.Equal(1u, r.Submit());
             Assert.Equal(1u, r.Flush(1));
+
+            Assert.Equal(0, r.SubmissionEntriesUsed);
+            Assert.Equal(8, r.SubmissionEntriesAvailable);
 
             Assert.True(r.TryRead(out Completion c));
             Assert.Equal(0, c.result);
