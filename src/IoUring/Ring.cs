@@ -119,9 +119,6 @@ namespace IoUring
                 Dispose();
                 throw;
             }
-
-            SubmissionQueueSize = (int) p.sq_entries;
-            CompletionQueueSize = (int) p.cq_entries;
         }
 
         /// <summary>
@@ -153,12 +150,12 @@ namespace IoUring
         /// <summary>
         /// Returns the maximum number of events the Submission Queue can contain
         /// </summary>
-        public int SubmissionQueueSize { get; }
+        public int SubmissionQueueSize => (int) _sq.Entries;
 
         /// <summary>
         /// Returns the maximum number of events the Completion Queue can contain
         /// </summary>
-        public int CompletionQueueSize { get; }
+        public int CompletionQueueSize => (int) _cq.Entries;
 
         /// <summary>
         /// Returns the number of un-submitted entries in the Submission Queue

@@ -89,6 +89,11 @@ namespace IoUring.Internal
             );
 
         /// <summary>
+        /// Returns the number of entries in the Submission Queue.
+        /// </summary>
+        public uint Entries => *_ringEntries;
+
+        /// <summary>
         /// Returns the number of entries in the Submission Queue that can be used to prepare new submissions
         /// prior to the next <see cref="Submit"/> (and <see cref="Flush"/>).
         /// </summary>
