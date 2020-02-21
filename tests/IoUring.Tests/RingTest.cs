@@ -27,9 +27,8 @@ namespace IoUring.Tests
             Assert.Equal(1, r.SubmissionEntriesUsed);
             Assert.Equal(7, r.SubmissionEntriesAvailable);
 
-            Assert.Equal(1u, r.Submit());
-            Assert.True(r.Flush(1, out var flushed));
-            Assert.Equal(1u, flushed);
+            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(1u, submitted);
 
             Assert.Equal(0, r.SubmissionEntriesUsed);
             Assert.Equal(8, r.SubmissionEntriesAvailable);
@@ -50,13 +49,12 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.Equal(i, r.Submit());
-            Assert.True(r.Flush(i, out var flushed));
-            Assert.Equal(i, flushed);
+            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(i, submitted);
 
             for (uint j = 0; j < i; j++)
             {
-                Assert.True(r.TryRead(out Completion c));
+                Assert.True(r.TryRead(out var c));
                 Assert.Equal(0, c.result);
                 Assert.Equal(j, c.userData);
             }
@@ -73,9 +71,8 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.Equal(i, r.Submit());
-            Assert.True(r.Flush(i, out var flushed));
-            Assert.Equal(i, flushed);
+            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(i, submitted);
 
             Span<Completion> completions = stackalloc Completion[(int)i];
 
@@ -96,11 +93,10 @@ namespace IoUring.Tests
             for (i = 0; i < 8; i++)
             {
                 Assert.True(r.TryPrepareNop(i));
-                Assert.Equal(1u, r.Submit());
-                Assert.True(r.Flush(1, out var flushed));
-                Assert.Equal(1u, flushed);
+                Assert.True(r.Submit(out var submitted));
+                Assert.Equal(1u, submitted);
 
-                Assert.True(r.TryRead(out Completion c));
+                Assert.True(r.TryRead(out var c));
                 Assert.Equal(0, c.result);
                 Assert.Equal(i, c.userData);
             }
@@ -119,9 +115,8 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.Equal(i, r.Submit());
-            Assert.True(r.Flush(i, out var flushed));
-            Assert.Equal(i, flushed);
+            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(i, submitted);
 
             for (uint j = 0; j < i; j++)
             {
@@ -164,7 +159,6 @@ namespace IoUring.Tests
             {
                 var ring = (Ring) state;
                 uint toSubmit = 0;
-                uint toFlush = 0;
                 for (ulong i = 0; i < events; i++)
                 {
                     if (!ring.TryPrepareNop(i))
@@ -174,17 +168,18 @@ namespace IoUring.Tests
                     }
 
                     toSubmit++;
-                    if (toSubmit % 8 == 0)
-                    {
-                        toSubmit = 0;
-                        toFlush += ring.Submit();
-                    }
 
-                    if (toFlush % 16 == 0)
+                    if (toSubmit >= 15)
                     {
-                        Assert.True(ring.Flush(toFlush, out var flushed));
-                        toFlush -= flushed;
+                        Assert.True(ring.Submit(out var submitted));
+                        toSubmit -= submitted;
                     }
+                }
+
+                while (toSubmit > 0)
+                {
+                    Assert.True(ring.Submit(out var submitted));
+                    toSubmit -= submitted;
                 }
             });
 

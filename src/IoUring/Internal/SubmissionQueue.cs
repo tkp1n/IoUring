@@ -132,7 +132,11 @@ namespace IoUring.Internal
             return sqe;
         }
 
-        public uint Submit()
+        /// <summary>
+        /// Make prepared Submission Queue Entries visible to the kernel.
+        /// </summary>
+        /// <returns>The number of un-submitted Submission Queue Entries</returns>
+        public uint Notify()
         {
             uint gap = EntriesToSubmit;
             if (gap == 0) return 0;
@@ -152,7 +156,7 @@ namespace IoUring.Internal
             return gap;
         }
 
-        private bool ShouldFlush(bool kernelSqPolling, out uint enterFlags)
+        private bool ShouldEnter(bool kernelSqPolling, out uint enterFlags)
         {
             enterFlags = 0;
             if (kernelSqPolling)
@@ -172,12 +176,14 @@ namespace IoUring.Internal
             return true;
         }
 
-        public bool Flush(int ringFd, bool kernelSqPolling, uint toFlush, uint minComplete, out uint operationsFlushed)
+        public bool SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
         {
-            if (!ShouldFlush(kernelSqPolling, out uint enterFlags))
+            uint toSubmit = Notify();
+
+            if (!ShouldEnter(kernelSqPolling, out uint enterFlags))
             {
-                // Assume all Entries are known to the kernel (flushed)
-                operationsFlushed = toFlush;
+                // Assume all Entries are already known to the kernel via Notify above
+                operationsSubmitted = toSubmit;
                 return true;
             }
 
@@ -187,14 +193,14 @@ namespace IoUring.Internal
             int err = default;
             do
             {
-                res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL);
+                res = io_uring_enter(ringFd, toSubmit, minComplete, enterFlags, (sigset_t*) NULL);
             } while (res == -1 && (err = errno) == EINTR);
 
             if (res < 0)
             {
                 if (err == EAGAIN || err == EBUSY)
                 {
-                    operationsFlushed = default;
+                    operationsSubmitted = default;
                     return false; // Application must consume completions before entering again
                 }
 
@@ -208,7 +214,7 @@ namespace IoUring.Internal
                 ThrowSubmissionEntryDroppedException(dropped);
             }
 
-            operationsFlushed = (uint)res;
+            operationsSubmitted = (uint)res;
             return true;
         }
     }

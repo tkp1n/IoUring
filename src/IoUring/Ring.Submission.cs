@@ -681,38 +681,27 @@ namespace IoUring
         }
 
         /// <summary>
-        /// Submits all pending (not previously submitted) Submission Queue Entries to the kernel.
-        /// Submitting an Entry makes it available to the kernel if polling is enabled. Otherwise, the submission
-        /// will be ignored until flushed.
-        /// It is profitable to submit as many Entries as possible before performing the Flush, as the Flush operation includes a syscall.
+        /// Notifies the kernel of the availability of new Submission Queue Entries and waits for a given number of completions to occur.
+        /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
-        /// <returns>The number of submitted Entries</returns>
-        public uint Submit() => _sq.Submit();
+        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
+        /// <param name="minComplete">The number of completed Submission Queue Entries required before returning</param>
+        /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
+        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
+        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
+        public bool SubmitAndWait(uint minComplete, out uint operationsSubmitted)
+            => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, minComplete, out operationsSubmitted);
 
         /// <summary>
         /// Notifies the kernel of the availability of new Submission Queue Entries.
         /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
-        /// <param name="toFlush">Number of un-flushed Submission Queue Entries</param>
-        /// <param name="operationsFlushed">(out) The number of flushed Submission Queue Entries</param>
-        /// <param name="minComplete">The number of completed Submission Queue Entries required before returning (default = 0)</param>
-        /// <returns><code>true</code> if the flush was successful. <code>false</code> if the application must consume completions before attempting to flush again.</returns>
+        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
+        /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
         /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public bool Flush(uint toFlush, uint minComplete, out uint operationsFlushed)
-            => _sq.Flush(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, toFlush, minComplete, out operationsFlushed);
-
-        /// <summary>
-        /// Notifies the kernel of the availability of new Submission Queue Entries.
-        /// This typically requires a syscall and should be deferred as long as possible.
-        /// </summary>
-        /// <param name="toFlush">Number of un-flushed Submission Queue Entries</param>
-        /// <param name="operationsFlushed">(out) The number of flushed Submission Queue Entries</param>
-        /// <returns><code>true</code> if the flush was successful. <code>false</code> if the application must consume completions before attempting to flush again.</returns>
-        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
-        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public bool Flush(uint toFlush, out uint operationsFlushed)
-            => Flush(toFlush, 0, out operationsFlushed);
+        public bool Submit(out uint operationsSubmitted)
+            => SubmitAndWait(0, out operationsSubmitted);
 
         private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
             => (sqe = _sq.NextSubmissionQueueEntry(SubmissionPollingEnabled)) != NULL;
