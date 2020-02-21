@@ -176,12 +176,23 @@ namespace IoUring.Internal
             return true;
         }
 
+        private void CheckNoSubmissionsDropped()
+        {
+            uint dropped = Volatile.Read(ref *_dropped);
+            if (dropped != 0)
+            {
+                ThrowSubmissionEntryDroppedException(dropped);
+            }
+        }
+
         public bool SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
         {
             uint toSubmit = Notify();
 
             if (!ShouldEnter(kernelSqPolling, out uint enterFlags))
             {
+                CheckNoSubmissionsDropped();
+
                 // Assume all Entries are already known to the kernel via Notify above
                 operationsSubmitted = toSubmit;
                 return true;
@@ -207,11 +218,9 @@ namespace IoUring.Internal
                 ThrowErrnoException(res);
             }
 
-            // Memory barrier is sadly only required to reliably fetch number of dropped submissions (typically zero)
-            uint dropped = Volatile.Read(ref *_dropped);
-            if (dropped != 0)
+            if (res != toSubmit)
             {
-                ThrowSubmissionEntryDroppedException(dropped);
+                CheckNoSubmissionsDropped();
             }
 
             operationsSubmitted = (uint)res;
