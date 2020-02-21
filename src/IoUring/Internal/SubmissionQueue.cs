@@ -183,24 +183,22 @@ namespace IoUring.Internal
 
             if (minComplete > 0) enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
 
-            int res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL);
+            int res;
+            int err = default;
+            do
+            {
+                res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL);
+            } while (res == -1 && (err = errno) == EINTR);
+
             if (res < 0)
             {
-                int err = errno;
                 if (err == EAGAIN || err == EBUSY)
                 {
                     operationsFlushed = default;
                     return false; // Application must consume completions before entering again
                 }
 
-                if (err == EINTR) // Undocumented but reported to have happened
-                {
-                    while (
-                        (res = io_uring_enter(ringFd, toFlush, minComplete, enterFlags, (sigset_t*) NULL)) < 0 &&
-                        (err = errno) == EINTR) { } // retry until no longer interrupted
-                }
-
-                ThrowErrnoException(err);
+                ThrowErrnoException(res);
             }
 
             // Memory barrier is sadly only required to reliably fetch number of dropped submissions (typically zero)
