@@ -141,7 +141,7 @@ namespace IoUring.Transport.Internals
                     PollWrite(context);
                 }
 
-                Flush();
+                Submit();
                 Complete();
             }
         }
@@ -248,11 +248,8 @@ namespace IoUring.Transport.Internals
             _ring.PrepareWriteV(socket, writeVecs ,ctr, 0 ,0, Mask(socket, WriteMask));
         }
 
-        private void Flush()
+        private void Submit()
         {
-            var submitted = _ring.Submit();
-            IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) submitted);
-
             uint minComplete = 0;
             if (_threadContext.BlockingMode)
             {
@@ -260,14 +257,16 @@ namespace IoUring.Transport.Internals
                 IoUringTransportEventSource.Log.ReportBlockingEnter();
             }
 
-            uint flushed;
-            while (!_ring.Flush(submitted, minComplete, out flushed))
+            uint submitted;
+            while (!_ring.SubmitAndWait(minComplete, out submitted))
             {
                 Complete(); // TODO: Consider not appearing blocked while reaping completions
             }
             _threadContext.BlockingMode = false;
 
-            if (flushed == 0)
+            IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) submitted);
+
+            if (submitted == 0)
             {
                 _loopsWithoutSubmission++;
             }
