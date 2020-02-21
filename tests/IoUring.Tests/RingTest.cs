@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using Xunit;
+using Tmds.Linux;
+using static Tmds.Linux.LibC;
 
 namespace IoUring.Tests
 {
@@ -206,6 +208,35 @@ namespace IoUring.Tests
             });
             
             Assert.False(r.TryPrepareNop());
+        }
+
+        [Fact]
+        public unsafe void SubmissionWithInvalidArgumentsDoesNotIncrementDropped()
+        {
+            var r = new Ring(8);
+
+            r.PrepareNop(1u);
+            // prepare submission with invalid parameters
+            Assert.True(r.TryPrepareReadWrite(99, -1, (void*) IntPtr.Zero, -12, 0, 0, 2u, SubmissionOption.None));
+            r.PrepareNop(3u);
+
+            Assert.True(r.SubmitAndWait(3, out var submitted));
+            Assert.Equal(2u, submitted);
+
+            Assert.True(r.TryRead(out var c));
+            Assert.Equal(1u, c.userData);
+
+            Assert.True(r.TryRead(out c));
+            Assert.Equal(2u, c.userData);
+            Assert.Equal(EINVAL, -c.result);
+
+            // Submissions after invalid one are ignored by kernel without dropped being incremented
+            Assert.False(r.TryRead(out _));
+
+            Assert.True(r.Submit(out submitted));
+            Assert.Equal(0u, submitted);
+
+            Assert.False(r.TryRead(out _));
         }
     }
 }

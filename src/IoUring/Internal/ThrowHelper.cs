@@ -27,13 +27,6 @@ namespace IoUring.Internal
         private static Exception NewSubmissionQueueFullException()
             => new SubmissionQueueFullException();
 
-        public static void ThrowSubmissionEntryDroppedException(long count)
-            => throw NewSubmissionEntryDroppedException(count);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static Exception NewSubmissionEntryDroppedException(long count)
-            => new SubmissionEntryDroppedException(count);
-
         public static void ThrowOverflowException(long count)
             => throw NewCompletionQueueOverflowException(count);
 

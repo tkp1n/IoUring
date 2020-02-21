@@ -617,8 +617,9 @@ namespace IoUring
         public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
             => TryPrepareReadWrite(IORING_OP_LINK_TIMEOUT, -1, ts, 1, 0, (int) timeoutOptions, userData, options);
 
+        // internal for testing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
+        internal bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -687,7 +688,6 @@ namespace IoUring
         /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
         /// <param name="minComplete">The number of completed Submission Queue Entries required before returning</param>
         /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
-        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
         public bool SubmitAndWait(uint minComplete, out uint operationsSubmitted)
             => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, minComplete, out operationsSubmitted);
@@ -698,7 +698,6 @@ namespace IoUring
         /// </summary>
         /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
         /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
-        /// <exception cref="SubmissionEntryDroppedException">If an invalid Submission Queue Entry was dropped</exception>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
         public bool Submit(out uint operationsSubmitted)
             => SubmitAndWait(0, out operationsSubmitted);
