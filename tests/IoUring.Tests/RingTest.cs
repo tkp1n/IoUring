@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using Xunit;
-using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
 namespace IoUring.Tests
@@ -234,9 +233,10 @@ namespace IoUring.Tests
             Assert.False(r.TryRead(out _));
 
             Assert.True(r.Submit(out submitted));
-            Assert.Equal(0u, submitted);
+            Assert.Equal(1u, submitted);
 
-            Assert.False(r.TryRead(out _));
+            Assert.True(r.TryRead(out c));
+            Assert.Equal(3u, c.userData);
         }
     }
 }

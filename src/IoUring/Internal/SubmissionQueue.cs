@@ -136,15 +136,20 @@ namespace IoUring.Internal
         /// <summary>
         /// Make prepared Submission Queue Entries visible to the kernel.
         /// </summary>
-        /// <returns>The number of un-submitted Submission Queue Entries</returns>
+        /// <returns>
+        /// The number Submission Queue Entries that can be submitted.
+        /// This may include Submission Queue Entries previously ignored by the kernel.</returns>
         private uint Notify()
         {
-            uint gap = EntriesToSubmit;
-            if (gap == 0) return 0;
+            if (_headInternal == _tailInternal)
+            {
+                return *_tail - *_head;
+            }
 
             uint tail = *_tail;
             uint mask = *_ringMask;
-            for (uint i = 0; i < gap; i++)
+            uint toSubmit = _tailInternal - _headInternal;
+            while (toSubmit-- != 0)
             {
                 _array[tail & mask] = _headInternal & mask;
                 tail = unchecked(tail + 1);
@@ -154,7 +159,7 @@ namespace IoUring.Internal
             // write barrier to ensure all manipulations above are visible to the kernel once the tail-bump is observed
             Volatile.Write(ref *_tail, tail);
 
-            return gap;
+            return tail - *_head;
         }
 
         private bool ShouldEnter(bool kernelSqPolling, out uint enterFlags)
