@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Tmds.Linux;
@@ -95,13 +96,13 @@ namespace IoUring.Internal
 
         /// <summary>
         /// Returns the number of entries in the Submission Queue that can be used to prepare new submissions
-        /// prior to the next <see cref="Submit"/> (and <see cref="Flush"/>).
+        /// prior to the next <see cref="SubmitAndWait"/>.
         /// </summary>
         public uint EntriesToPrepare => *_ringEntries - (_tailInternal - _headInternal);
 
         /// <summary>
         /// Returns the number of prepared Submission Queue Entries that will be submitted to the kernel during
-        /// the next <see cref="Submit"/> (and <see cref="Flush"/>).
+        /// the next <see cref="SubmitAndWait"/>.
         /// </summary>
         public uint EntriesToSubmit => _tailInternal - _headInternal;
 
@@ -136,7 +137,7 @@ namespace IoUring.Internal
         /// Make prepared Submission Queue Entries visible to the kernel.
         /// </summary>
         /// <returns>The number of un-submitted Submission Queue Entries</returns>
-        public uint Notify()
+        private uint Notify()
         {
             uint gap = EntriesToSubmit;
             if (gap == 0) return 0;
@@ -176,14 +177,9 @@ namespace IoUring.Internal
             return true;
         }
 
-        private void CheckNoSubmissionsDropped()
-        {
-            uint dropped = Volatile.Read(ref *_dropped);
-            if (dropped != 0)
-            {
-                ThrowSubmissionEntryDroppedException(dropped);
-            }
-        }
+        [Conditional("DEBUG")]
+        [DebuggerStepThrough]
+        private void CheckNoSubmissionsDropped() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
         public bool SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
         {
@@ -218,10 +214,7 @@ namespace IoUring.Internal
                 ThrowErrnoException(res);
             }
 
-            if (res != toSubmit)
-            {
-                CheckNoSubmissionsDropped();
-            }
+            CheckNoSubmissionsDropped();
 
             operationsSubmitted = (uint)res;
             return true;
