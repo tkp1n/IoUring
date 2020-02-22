@@ -28,7 +28,7 @@ namespace IoUring.Tests
             Assert.Equal(1, r.SubmissionEntriesUsed);
             Assert.Equal(7, r.SubmissionEntriesAvailable);
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(1u, submitted);
 
             Assert.Equal(0, r.SubmissionEntriesUsed);
@@ -50,7 +50,7 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(i, submitted);
 
             for (uint j = 0; j < i; j++)
@@ -72,7 +72,7 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(i, submitted);
 
             Span<Completion> completions = stackalloc Completion[(int)i];
@@ -94,7 +94,7 @@ namespace IoUring.Tests
             for (i = 0; i < 8; i++)
             {
                 Assert.True(r.TryPrepareNop(i));
-                Assert.True(r.Submit(out var submitted));
+                Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
                 Assert.Equal(1u, submitted);
 
                 Assert.True(r.TryRead(out var c));
@@ -116,7 +116,7 @@ namespace IoUring.Tests
                 Assert.True(r.TryPrepareNop(i));
             }
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(i, submitted);
 
             for (uint j = 0; j < i; j++)
@@ -172,14 +172,14 @@ namespace IoUring.Tests
 
                     if (toSubmit >= 15)
                     {
-                        Assert.True(ring.Submit(out var submitted));
+                        Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
                         toSubmit -= submitted;
                     }
                 }
 
                 while (toSubmit > 0)
                 {
-                    Assert.True(ring.Submit(out var submitted));
+                    Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
                     toSubmit -= submitted;
                 }
             });
@@ -219,7 +219,7 @@ namespace IoUring.Tests
             Assert.True(r.TryPrepareReadWrite(99, -1, (void*) IntPtr.Zero, -12, 0, 0, 2u, SubmissionOption.None));
             r.PrepareNop(3u);
 
-            Assert.True(r.SubmitAndWait(3, out var submitted));
+            Assert.Equal(SubmitResult.SubmittedPartially, r.SubmitAndWait(3, out var submitted));
             Assert.Equal(2u, submitted);
 
             Assert.True(r.TryRead(out var c));
@@ -232,7 +232,7 @@ namespace IoUring.Tests
             // Submissions after invalid one are ignored by kernel without dropped being incremented
             Assert.False(r.TryRead(out _));
 
-            Assert.True(r.Submit(out submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
             Assert.Equal(1u, submitted);
 
             Assert.True(r.TryRead(out c));

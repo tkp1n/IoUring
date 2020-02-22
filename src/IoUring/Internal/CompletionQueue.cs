@@ -78,8 +78,6 @@ namespace IoUring.Internal
 
         public Completion Read(int ringFd, bool kernelIoPolling)
         {
-            Completion completion = default;
-
             while (true)
             {
                 int res = io_uring_enter(ringFd, 0, 1, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
@@ -88,7 +86,7 @@ namespace IoUring.Internal
                     ThrowErrnoException();
                 }
 
-                if (TryRead(ringFd, kernelIoPolling, out completion, true))
+                if (TryRead(ringFd, kernelIoPolling, out var completion, true))
                 {
                     return completion;
                 }
