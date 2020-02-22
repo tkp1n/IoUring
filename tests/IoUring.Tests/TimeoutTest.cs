@@ -19,7 +19,7 @@ namespace IoUring.Tests
 
             Assert.True(r.TryPrepareTimeout(&ts));
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(1u, submitted);
 
             Assert.False(r.TryRead(out var c));
@@ -41,13 +41,13 @@ namespace IoUring.Tests
 
             Assert.True(r.TryPrepareTimeout(&ts));
 
-            Assert.True(r.Submit(out var submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
             Assert.Equal(1u, submitted);
 
             Assert.False(r.TryRead(out var c));
 
             Assert.True(r.TryPrepareNop(userData: 123));
-            Assert.True(r.Submit(out submitted));
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
             Assert.Equal(1u, submitted);
 
             Assert.True(r.TryRead(out c));

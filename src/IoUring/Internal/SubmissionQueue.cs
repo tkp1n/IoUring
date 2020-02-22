@@ -186,7 +186,7 @@ namespace IoUring.Internal
         [DebuggerStepThrough]
         private void CheckNoSubmissionsDropped() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
-        public bool SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
+        public SubmitResult SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
         {
             uint toSubmit = Notify();
 
@@ -196,7 +196,7 @@ namespace IoUring.Internal
 
                 // Assume all Entries are already known to the kernel via Notify above
                 operationsSubmitted = toSubmit;
-                return true;
+                return SubmitResult.SubmittedSuccessfully;
             }
 
             if (minComplete > 0) enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
@@ -213,7 +213,7 @@ namespace IoUring.Internal
                 if (err == EAGAIN || err == EBUSY)
                 {
                     operationsSubmitted = default;
-                    return false; // Application must consume completions before entering again
+                    return SubmitResult.AwaitCompletions;
                 }
 
                 ThrowErrnoException(res);
@@ -221,8 +221,9 @@ namespace IoUring.Internal
 
             CheckNoSubmissionsDropped();
 
-            operationsSubmitted = (uint)res;
-            return true;
+            return (operationsSubmitted = (uint) res) >= toSubmit ? 
+                SubmitResult.SubmittedSuccessfully : 
+                SubmitResult.SubmittedPartially;
         }
     }
 }

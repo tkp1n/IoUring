@@ -685,11 +685,11 @@ namespace IoUring
         /// Notifies the kernel of the availability of new Submission Queue Entries and waits for a given number of completions to occur.
         /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
-        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
         /// <param name="minComplete">The number of completed Submission Queue Entries required before returning</param>
-        /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
+        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
+        /// <returns>The result of the operation</returns>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public bool SubmitAndWait(uint minComplete, out uint operationsSubmitted)
+        public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
             => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, minComplete, out operationsSubmitted);
 
         /// <summary>
@@ -697,9 +697,9 @@ namespace IoUring
         /// This typically requires a syscall and should be deferred as long as possible.
         /// </summary>
         /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
-        /// <returns><code>true</code> if the submit was successful. <code>false</code> if the application must consume completions before attempting to submit again.</returns>
+        /// <returns>The result of the operation</returns>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public bool Submit(out uint operationsSubmitted)
+        public SubmitResult Submit(out uint operationsSubmitted)
             => SubmitAndWait(0, out operationsSubmitted);
 
         private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)

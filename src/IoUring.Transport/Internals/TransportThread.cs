@@ -257,16 +257,22 @@ namespace IoUring.Transport.Internals
                 IoUringTransportEventSource.Log.ReportBlockingEnter();
             }
 
-            uint submitted;
-            while (!_ring.SubmitAndWait(minComplete, out submitted))
+            uint operationsSubmitted = 0;
+            SubmitResult result;
+            do
             {
-                Complete(); // TODO: Consider not appearing blocked while reaping completions
-            }
+                result = _ring.SubmitAndWait(minComplete, out var submitted);
+                operationsSubmitted += submitted;
+                if (result == SubmitResult.AwaitCompletions)
+                {
+                    Complete(); // TODO: Consider not appearing blocked while reaping completions
+                }
+            } while (result != SubmitResult.SubmittedSuccessfully);
             _threadContext.BlockingMode = false;
 
-            IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) submitted);
+            IoUringTransportEventSource.Log.ReportSubmissionsPerEnter((int) operationsSubmitted);
 
-            if (submitted == 0)
+            if (operationsSubmitted == 0)
             {
                 _loopsWithoutSubmission++;
             }
