@@ -1,3 +1,5 @@
+:warning: The IoUring.Transport subproject lives in it's own repositrory now: [tkp1n/IoUring.Transport](https://github.com/tkp1n/IoUring.Transport)
+
 # IoUring
 
 C# wrapper for [`io_uring`](https://kernel.dk/io_uring.pdf). This library fulfills the same purpose as the native [liburing](https://github.com/axboe/liburing), by which it is heavily inspired.
