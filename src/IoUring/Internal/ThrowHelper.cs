@@ -6,6 +6,13 @@ namespace IoUring.Internal
 {
     internal static class ThrowHelper
     {
+        public static void ThrowPlatformNotSupportedException()
+            => throw NewPlatformNotSupportedException();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewPlatformNotSupportedException()
+            => new PlatformNotSupportedException();
+
         public static void ThrowErrnoException()
             => throw NewErrnoException();
 
@@ -57,10 +64,9 @@ namespace IoUring.Internal
 
         internal enum ExceptionArgument
         {
-            continuation,
-            exception,
-            handle,
-            ioScheduler,
+            entries,
+            iovcnt,
+            nrFiles
         }
     }
 }

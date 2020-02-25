@@ -94,8 +94,8 @@ namespace IoUring
 
         public Ring(int entries, RingOptions? ringOptions = default)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) throw new PlatformNotSupportedException();
-            if (entries < 1) throw new ArgumentOutOfRangeException(nameof(entries), "must be non-zero positive value");
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) ThrowPlatformNotSupportedException();
+            if (entries < 1) ThrowArgumentOutOfRangeException(ExceptionArgument.entries);
 
             io_uring_params p = default;
             int fd = Setup((uint) entries, &p, ringOptions);

@@ -16,7 +16,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">On failed syscall</exception>
         public void RegisterBuffers(iovec* iov, int iovcnt)
         {
-            if (iovcnt < 0) throw new ArgumentOutOfRangeException(nameof(iovcnt), "must be non-negative");
+            if (iovcnt < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.iovcnt);
             Register(IORING_REGISTER_BUFFERS, iov, (uint) iovcnt);
         }
 
@@ -36,7 +36,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">On failed syscall</exception>
         public void RegisterFiles(int* files, int nrFiles)
         {
-            if (nrFiles < 0) throw new ArgumentOutOfRangeException(nameof(nrFiles), "must be non-negative");
+            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.nrFiles);
             Register(IORING_REGISTER_FILES, files, (uint) nrFiles);
         }
 
@@ -56,7 +56,7 @@ namespace IoUring
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public void UpdateRegisteredFiles(uint off, int* files, int nrFiles)
         {
-            if (nrFiles < 0) throw new ArgumentOutOfRangeException(nameof(nrFiles), "must be non-negative");
+            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.nrFiles);
 
             io_uring_files_update up;
             up.offset = off;
