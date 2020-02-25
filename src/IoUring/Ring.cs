@@ -160,19 +160,19 @@ namespace IoUring
         /// <summary>
         /// Returns the number of un-submitted entries in the Submission Queue
         /// </summary>
-        public int SubmissionEntriesUsed => (int) _sq.EntriesToSubmit;
+        public int SubmissionEntriesUsed => (int) _sq.CalculateEntriesToSubmit(SubmissionPollingEnabled);
 
         /// <summary>
         /// Returns the number of free entries in the Submission Queue
         /// </summary>
-        public int SubmissionEntriesAvailable => (int) _sq.EntriesToPrepare;
+        public int SubmissionEntriesAvailable => (int) _sq.CalculateEntriesToPrepare(SubmissionPollingEnabled);
 
         /// <inheritdoc cref="IDisposable"/>
         public void Dispose()
         {
-            _ringFd?.Dispose();
+            _ringFd.Dispose();
             _sqHandle?.Dispose();
-            _sqeHandle?.Dispose();
+            _sqeHandle.Dispose();
             if (_sqHandle != _cqHandle)
                 _cqHandle?.Dispose();
         }

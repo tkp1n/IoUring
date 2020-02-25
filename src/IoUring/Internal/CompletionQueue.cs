@@ -12,39 +12,39 @@ namespace IoUring.Internal
         /// <summary>
         /// Incremented by the application to let the kernel know, which Completion Queue Events were already consumed.
         /// </summary>
-        private uint* _head;
+        private readonly uint* _head;
 
         /// <summary>
         /// Incremented by the kernel to let the application know about another Completion Queue Event.
         /// </summary>
-        private uint* _tail;
+        private readonly uint* _tail;
 
         /// <summary>
         /// Mask to apply to potentially overflowing head counter to get a valid index within the ring.
         /// </summary>
-        private uint* _ringMask;
+        private readonly uint _ringMask;
 
         /// <summary>
         /// Number of entries in the ring.
         /// </summary>
-        private uint* _ringEntries;
+        private readonly uint _ringEntries;
 
         /// <summary>
         /// Incremented by the kernel on each overwritten Completion Queue Event.
         /// This is a sign, that the application is producing Submission Queue Events faster as it handles the corresponding Completion Queue Events.
         /// </summary>
-        private uint* _overflow;
+        private readonly uint* _overflow;
 
         /// <summary>
         /// Completion Queue Events filled by the kernel.
         /// </summary>
-        private io_uring_cqe* _cqes;
+        private readonly io_uring_cqe* _cqes;
 
-        private uint* _headInternal;
+        private readonly uint* _headInternal;
 
         private uint* _tailInternal;
 
-        private CompletionQueue(uint* head, uint* tail, uint* ringMask, uint* ringEntries, uint* overflow, io_uring_cqe* cqes)
+        private CompletionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* overflow, io_uring_cqe* cqes)
         {
             _head = head;
             _tail = tail;
@@ -60,8 +60,8 @@ namespace IoUring.Internal
             new CompletionQueue(
                 head: Add<uint>(ringBase, offsets->head),
                 tail: Add<uint>(ringBase, offsets->tail),
-                ringMask: Add<uint>(ringBase, offsets->ring_mask),
-                ringEntries: Add<uint>(ringBase, offsets->ring_entries),
+                ringMask: *Add<uint>(ringBase, offsets->ring_mask),
+                ringEntries: *Add<uint>(ringBase, offsets->ring_entries),
                 overflow: Add<uint>(ringBase, offsets->overflow),
                 cqes: Add<io_uring_cqe>(ringBase, offsets->cqes)
             );
@@ -69,23 +69,16 @@ namespace IoUring.Internal
         /// <summary>
         /// Returns the number of entries in the Completion Queue.
         /// </summary>
-        public uint Entries => *_ringEntries;
+        public uint Entries => _ringEntries;
 
-        public bool TryRead(int ringFd, bool kernelIoPolling, out Completion result)
-        {
-            return TryRead(ringFd, kernelIoPolling, out result, true);
-        }
+        public bool TryRead(int ringFd, bool kernelIoPolling, out Completion result) 
+            => TryRead(ringFd, kernelIoPolling, out result, true);
 
         public Completion Read(int ringFd, bool kernelIoPolling)
         {
             while (true)
             {
-                int res = io_uring_enter(ringFd, 0, 1, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
-                if (res < 0)
-                {
-                    ThrowErrnoException();
-                }
-
+                SafeEnter(ringFd, 0, 1, IORING_ENTER_GETEVENTS);
                 if (TryRead(ringFd, kernelIoPolling, out var completion, true))
                 {
                     return completion;
@@ -105,11 +98,7 @@ namespace IoUring.Internal
                     continue; // keep on reading without syscall-ing
                 }
 
-                int res = io_uring_enter(ringFd, 0, (uint) (results.Length - read), IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
-                if (res < 0)
-                {
-                    ThrowErrnoException();
-                }
+                SafeEnter(ringFd, 0, (uint) (results.Length - read), IORING_ENTER_GETEVENTS);
             }
 
             // Move head now, as we skipped the memory barrier in the TryRead above
@@ -149,7 +138,7 @@ namespace IoUring.Internal
                 return false;
             }
 
-            var index = head & *_ringMask;
+            var index = head & _ringMask;
             var cqe = &_cqes[index];
 
             result = new Completion(cqe->res, cqe->user_data);
@@ -167,11 +156,7 @@ namespace IoUring.Internal
         private static void PollCompletion(int ringFd)
         {
             // We are not expected to block if no completions are available, so min_complete is set to 0.
-            int ret = io_uring_enter(ringFd, 0, 0, IORING_ENTER_GETEVENTS, (sigset_t*) NULL);
-            if (ret < 0)
-            {
-                ThrowErrnoException();
-            }
+            SafeEnter(ringFd, 0, 0, IORING_ENTER_GETEVENTS);
         }
     }
 }
