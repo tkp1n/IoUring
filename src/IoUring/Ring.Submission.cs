@@ -181,10 +181,10 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareRead(int fd, void* buf, size_t count, int index, off_t offset = default,
+        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            if (!TryPrepareRead(fd, buf, count, index, offset, userData, options))
+            if (!TryPrepareReadFixed(fd, buf, count, index, offset, userData, options))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -202,7 +202,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareRead(int fd, void* buf, size_t count, int index, off_t offset = default,
+        public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWriteFixed(IORING_OP_READ_FIXED, fd, buf, count, index, offset, userData, options);
 
@@ -218,10 +218,10 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareWrite(int fd, void* buf, size_t count, int index, off_t offset = default,
+        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            if (!TryPrepareWrite(fd, buf, count, index, offset, userData, options))
+            if (!TryPrepareWriteFixed(fd, buf, count, index, offset, userData, options))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -239,7 +239,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareWrite(int fd, void* buf, size_t count, int index, off_t offset = default,
+        public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
             ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWriteFixed(IORING_OP_WRITE_FIXED, fd, buf, count, index, offset, userData, options);
 
