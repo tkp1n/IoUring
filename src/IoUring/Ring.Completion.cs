@@ -16,7 +16,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">If a syscall failed</exception>
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
         public bool TryRead(out Completion result)
-            => _cq.TryRead(_ringFd.DangerousGetHandle().ToInt32(), IoPollingEnabled, out result);
+            => _cq.TryRead(_ringFd.DangerousGetHandle().ToInt32(), out result);
 
         /// <summary>
         /// Reads, blocking if required, for a Completion Queue Event.
@@ -25,7 +25,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">If a syscall failed</exception>
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
         public Completion Read()
-            => _cq.Read(_ringFd.DangerousGetHandle().ToInt32(), IoPollingEnabled);
+            => _cq.Read(_ringFd.DangerousGetHandle().ToInt32());
 
         /// <summary>
         /// Reads, blocking if required, for as many Completion Queue Events as fit the provided span.
@@ -34,6 +34,6 @@ namespace IoUring
         /// <exception cref="ErrnoException">If a syscall failed</exception>
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
         public void Read(Span<Completion> results)
-            => _cq.Read(_ringFd.DangerousGetHandle().ToInt32(), IoPollingEnabled, results);
+            => _cq.Read(_ringFd.DangerousGetHandle().ToInt32(), results);
     }
 }

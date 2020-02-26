@@ -63,7 +63,12 @@ namespace IoUring.Internal
         /// </summary>
         private uint _headInternal;
 
-        private SubmissionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* flags, uint* dropped, uint* array, io_uring_sqe* sqes)
+        /// <summary>
+        /// Whether the kernel is polling the Submission Queue.
+        /// </summary>
+        private readonly bool _sqPolled;
+
+        private SubmissionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* flags, uint* dropped, uint* array, io_uring_sqe* sqes, bool sqPolled)
         {
             _head = head;
             _tail = tail;
@@ -75,9 +80,10 @@ namespace IoUring.Internal
             _sqes = sqes;
             _tailInternal = 0;
             _headInternal = 0;
+            _sqPolled = sqPolled;
         }
 
-        public static SubmissionQueue CreateSubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements)
+        public static SubmissionQueue CreateSubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements, bool sqPolled)
             => new SubmissionQueue(
                 head: Add<uint>(ringBase, offsets->head),
                 tail: Add<uint>(ringBase, offsets->tail),
@@ -86,7 +92,8 @@ namespace IoUring.Internal
                 flags: Add<uint>(ringBase, offsets->flags),
                 dropped: Add<uint>(ringBase, offsets->dropped),
                 array: Add<uint>(ringBase, offsets->array),
-                sqes: elements
+                sqes: elements,
+                sqPolled: sqPolled
             );
 
         /// <summary>
@@ -98,23 +105,24 @@ namespace IoUring.Internal
         /// Determines the number of entries in the Submission Queue that can be used to prepare new submissions
         /// prior to the next <see cref="SubmitAndWait"/>.
         /// </summary>
-        /// <param name="kernelSqPolling">Whether the kernel is polling the Submission Queue</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint CalculateEntriesToPrepare(bool kernelSqPolling)
+        public uint EntriesToPrepare
         {
-            return _ringEntries - CalculateEntriesToSubmit(kernelSqPolling);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _ringEntries - EntriesToSubmit;
         }
 
         /// <summary>
         /// Calculates the number of prepared Submission Queue Entries that will be submitted to the kernel during
         /// the next <see cref="SubmitAndWait"/>.
         /// </summary>
-        /// <param name="kernelSqPolling">Whether the kernel is polling the Submission Queue</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint CalculateEntriesToSubmit(bool kernelSqPolling)
+        public uint EntriesToSubmit
         {
-            uint head = kernelSqPolling ? Volatile.Read(ref *_head) : _headInternal;
-            return unchecked(_tailInternal - head);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                uint head = _sqPolled ? Volatile.Read(ref *_head) : _headInternal;
+                return unchecked(_tailInternal - head);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,9 +149,9 @@ namespace IoUring.Internal
         /// If the Submission Queue is full, a null-pointer is returned.
         /// </summary>
         /// <returns>The next Submission Queue Entry to be written to or null if the Queue is full</returns>
-        public io_uring_sqe* NextSubmissionQueueEntry(bool kernelSqPolling)
+        public io_uring_sqe* NextSubmissionQueueEntry()
         {
-            if (kernelSqPolling)
+            if (_sqPolled)
             {
                 return InternalNextSqe(Volatile.Read(ref *_head));
             }
@@ -169,7 +177,7 @@ namespace IoUring.Internal
 
             uint mask = _ringMask;
             uint* array = _array;
-            uint toSubmit = tailInternal - headInternal;
+            uint toSubmit = unchecked(tailInternal - headInternal);
             while (toSubmit-- != 0)
             {
                 array[tail & mask] = headInternal & mask;
@@ -185,10 +193,10 @@ namespace IoUring.Internal
             return tail - *_head;
         }
 
-        private bool ShouldEnter(bool kernelSqPolling, out uint enterFlags)
+        private bool ShouldEnter(out uint enterFlags)
         {
             enterFlags = 0;
-            if (!kernelSqPolling) return true;
+            if (!_sqPolled) return true;
             if ((*_flags & IORING_SQ_NEED_WAKEUP) != 0)
             {
                 // Kernel is polling but transitioned to idle (IORING_SQ_NEED_WAKEUP)
@@ -204,11 +212,11 @@ namespace IoUring.Internal
         [DebuggerStepThrough]
         private void CheckNoSubmissionsDropped() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
-        public SubmitResult SubmitAndWait(int ringFd, bool kernelSqPolling, uint minComplete, out uint operationsSubmitted)
+        public SubmitResult SubmitAndWait(int ringFd, uint minComplete, out uint operationsSubmitted)
         {
             uint toSubmit = Notify();
 
-            if (!ShouldEnter(kernelSqPolling, out uint enterFlags))
+            if (!ShouldEnter(out uint enterFlags))
             {
                 CheckNoSubmissionsDropped();
 
@@ -226,7 +234,7 @@ namespace IoUring.Internal
                 res = io_uring_enter(ringFd, toSubmit, minComplete, enterFlags, (sigset_t*) NULL);
             } while (res == -1 && (err = errno) == EINTR);
 
-            if (res < 0)
+            if (res == -1)
             {
                 if (err == EAGAIN || err == EBUSY)
                 {

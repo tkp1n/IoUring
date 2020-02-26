@@ -49,7 +49,7 @@ namespace IoUring
             return (sqSize, cqSize);
         }
 
-        private static SubmissionQueue MapSq(int ringFd, size_t sqSize, io_uring_params* p, out UnmapHandle sqHandle, out UnmapHandle sqeHandle)
+        private static SubmissionQueue MapSq(int ringFd, size_t sqSize, io_uring_params* p, bool sqPolled, out UnmapHandle sqHandle, out UnmapHandle sqeHandle)
         {
             var ptr = mmap(NULL, sqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQ_RING);
             if (ptr == MAP_FAILED)
@@ -66,10 +66,10 @@ namespace IoUring
             }
             sqeHandle = new UnmapHandle(sqePtr, sqeSize);
 
-            return SubmissionQueue.CreateSubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr);
+            return SubmissionQueue.CreateSubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr, sqPolled);
         }
 
-        private static CompletionQueue MapCq(int ringFd, size_t cqSize, io_uring_params* p, UnmapHandle sqHandle, out UnmapHandle cqHandle)
+        private static CompletionQueue MapCq(int ringFd, size_t cqSize, io_uring_params* p, UnmapHandle sqHandle, bool ioPolled, out UnmapHandle cqHandle)
         {
             void* ptr;
 
@@ -89,7 +89,7 @@ namespace IoUring
                 cqHandle = new UnmapHandle(ptr, cqSize);
             }
 
-            return CompletionQueue.CreateCompletionQueue(ptr, &p->cq_off);
+            return CompletionQueue.CreateCompletionQueue(ptr, &p->cq_off, ioPolled);
         }
 
         public Ring(int entries, RingOptions? ringOptions = default)
@@ -110,8 +110,8 @@ namespace IoUring
 
             try
             {
-                _sq = MapSq(fd, sqSize, &p, out _sqHandle, out _sqeHandle);
-                _cq = MapCq(fd, cqSize, &p, _sqHandle, out _cqHandle);
+                _sq = MapSq(fd, sqSize, &p, SubmissionPollingEnabled, out _sqHandle, out _sqeHandle);
+                _cq = MapCq(fd, cqSize, &p, _sqHandle, IoPollingEnabled, out _cqHandle);
             }
             catch (ErrnoException)
             {
@@ -160,12 +160,12 @@ namespace IoUring
         /// <summary>
         /// Returns the number of un-submitted entries in the Submission Queue
         /// </summary>
-        public int SubmissionEntriesUsed => (int) _sq.CalculateEntriesToSubmit(SubmissionPollingEnabled);
+        public int SubmissionEntriesUsed => (int) _sq.EntriesToSubmit;
 
         /// <summary>
         /// Returns the number of free entries in the Submission Queue
         /// </summary>
-        public int SubmissionEntriesAvailable => (int) _sq.CalculateEntriesToPrepare(SubmissionPollingEnabled);
+        public int SubmissionEntriesAvailable => (int) _sq.EntriesToPrepare;
 
         /// <inheritdoc cref="IDisposable"/>
         public void Dispose()

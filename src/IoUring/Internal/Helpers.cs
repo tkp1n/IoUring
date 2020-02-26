@@ -5,18 +5,18 @@ using static Tmds.Linux.LibC;
 
 namespace IoUring.Internal
 {
-    internal static class Helpers
+    internal static unsafe class Helpers
     {
         public static unsafe void* NULL => (void*) 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe T* Add<T>(void* a, uint b) where T : unmanaged
+        public static T* Add<T>(void* a, uint b) where T : unmanaged
         {
             return (T*) ((IntPtr) a + (int) b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void SafeEnter(int fd, uint toSubmit, uint minComplete, uint flags)
+        public static void SafeEnter(int fd, uint toSubmit, uint minComplete, uint flags)
         {
             int res;
             int err = 0;

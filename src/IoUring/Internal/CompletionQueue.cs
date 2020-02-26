@@ -44,7 +44,12 @@ namespace IoUring.Internal
 
         private uint* _tailInternal;
 
-        private CompletionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* overflow, io_uring_cqe* cqes)
+        /// <summary>
+        /// Whether the kernel polls for I/O
+        /// </summary>
+        private readonly bool _ioPolled;
+
+        private CompletionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* overflow, io_uring_cqe* cqes, bool ioPolled)
         {
             _head = head;
             _tail = tail;
@@ -52,18 +57,20 @@ namespace IoUring.Internal
             _ringEntries = ringEntries;
             _overflow = overflow;
             _cqes = cqes;
+            _ioPolled = ioPolled;
             _headInternal = head;
             _tailInternal = tail;
         }
 
-        public static CompletionQueue CreateCompletionQueue(void* ringBase, io_cqring_offsets* offsets) =>
+        public static CompletionQueue CreateCompletionQueue(void* ringBase, io_cqring_offsets* offsets, bool ioPolled) =>
             new CompletionQueue(
                 head: Add<uint>(ringBase, offsets->head),
                 tail: Add<uint>(ringBase, offsets->tail),
                 ringMask: *Add<uint>(ringBase, offsets->ring_mask),
                 ringEntries: *Add<uint>(ringBase, offsets->ring_entries),
                 overflow: Add<uint>(ringBase, offsets->overflow),
-                cqes: Add<io_uring_cqe>(ringBase, offsets->cqes)
+                cqes: Add<io_uring_cqe>(ringBase, offsets->cqes),
+                ioPolled: ioPolled
             );
 
         /// <summary>
@@ -71,28 +78,28 @@ namespace IoUring.Internal
         /// </summary>
         public uint Entries => _ringEntries;
 
-        public bool TryRead(int ringFd, bool kernelIoPolling, out Completion result) 
-            => TryRead(ringFd, kernelIoPolling, out result, true);
+        public bool TryRead(int ringFd, out Completion result) 
+            => TryRead(ringFd, out result, true);
 
-        public Completion Read(int ringFd, bool kernelIoPolling)
+        public Completion Read(int ringFd)
         {
             while (true)
             {
                 SafeEnter(ringFd, 0, 1, IORING_ENTER_GETEVENTS);
-                if (TryRead(ringFd, kernelIoPolling, out var completion, true))
+                if (TryRead(ringFd, out var completion, true))
                 {
                     return completion;
                 }
             }
         }
 
-        public void Read(int ringFd, bool kernelIoPolling, Span<Completion> results)
+        public void Read(int ringFd, Span<Completion> results)
         {
             int read = 0;
             while (read < results.Length)
             {
                 // Head is moved below to avoid memory barrier in loop
-                if (TryRead(read, kernelIoPolling, out results[read], false))
+                if (TryRead(read, out results[read], false))
                 {
                     read++;
                     continue; // keep on reading without syscall-ing
@@ -105,7 +112,7 @@ namespace IoUring.Internal
             Volatile.Write(ref *_head, *_headInternal);
         }
 
-        private bool TryRead(int ringFd, bool kernelIoPolling, out Completion result, bool bumpHead)
+        private bool TryRead(int ringFd, out Completion result, bool bumpHead)
         {
             uint head = *_head;
 
@@ -114,7 +121,7 @@ namespace IoUring.Internal
 
             if (!eventsAvailable)
             {
-                if (kernelIoPolling)
+                if (_ioPolled)
                 {
                     // If the kernel is polling I/O, we must reap completions.
                     PollCompletion(ringFd);

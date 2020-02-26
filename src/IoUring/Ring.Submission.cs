@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 using Tmds.Linux;
 using IoUring.Internal;
@@ -42,8 +41,8 @@ namespace IoUring
                 return false;
 
             sqe->opcode = IORING_OP_NOP;
-            sqe->user_data = userData;
             sqe->flags = (byte) options;
+            sqe->user_data = userData;
 
             return true;
         }
@@ -161,10 +160,10 @@ namespace IoUring
                 return false;
 
             sqe->opcode = IORING_OP_FSYNC;
-            sqe->user_data = userData;
             sqe->flags = (byte) options;
             sqe->fd = fd;
             sqe->fsync_flags = (uint) fsyncOptions;
+            sqe->user_data = userData;
 
             return true;
         }
@@ -277,10 +276,10 @@ namespace IoUring
                 return false;
 
             sqe->opcode = IORING_OP_POLL_ADD;
-            sqe->user_data = userData;
             sqe->flags = (byte) options;
             sqe->fd = fd;
             sqe->poll_events = pollEvents;
+            sqe->user_data = userData;
 
             return true;
         }
@@ -313,8 +312,8 @@ namespace IoUring
                 return false;
 
             sqe->opcode = IORING_OP_POLL_REMOVE;
-            sqe->user_data = userData;
             sqe->flags = (byte) options;
+            sqe->user_data = userData;
 
             return true;
         }
@@ -357,12 +356,12 @@ namespace IoUring
             unchecked
             {
                 sqe->opcode = IORING_OP_SYNC_FILE_RANGE;
-                sqe->user_data = userData;
                 sqe->flags = (byte) options;
                 sqe->fd = fd;
-                sqe->len = (uint) count;
                 sqe->off = (ulong) (long) offset;
+                sqe->len = (uint) count;
                 sqe->sync_range_flags = flags;
+                sqe->user_data = userData;
             }
 
             return true;
@@ -627,13 +626,13 @@ namespace IoUring
             unchecked
             {
                 sqe->opcode = op;
-                sqe->user_data = userData;
                 sqe->flags = (byte) options;
                 sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
                 sqe->addr = (ulong) iov;
                 sqe->len = (uint) count;
-                sqe->off = (ulong) (long) offset;
                 sqe->rw_flags = flags;
+                sqe->user_data = userData;
             }
 
             return true;
@@ -648,13 +647,13 @@ namespace IoUring
             unchecked
             {
                 sqe->opcode = op;
-                sqe->user_data = userData;
                 sqe->flags = (byte) options;
                 sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
                 sqe->addr = (ulong) buf;
                 sqe->len = (uint) count;
-                sqe->off = (ulong) (long) offset;
                 sqe->buf_index = (ushort) index;
+                sqe->user_data = userData;
             }
 
             return true;
@@ -670,12 +669,12 @@ namespace IoUring
             unchecked
             {
                 sqe->opcode = op;
-                sqe->user_data = userData;
                 sqe->flags = (byte) options;
                 sqe->fd = fd;
                 sqe->addr = (ulong) msg;
                 sqe->len = 1;
                 sqe->msg_flags = (uint) flags;
+                sqe->user_data = userData;
             }
 
             return true;
@@ -690,7 +689,7 @@ namespace IoUring
         /// <returns>The result of the operation</returns>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
         public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
-            => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), SubmissionPollingEnabled, minComplete, out operationsSubmitted);
+            => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), minComplete, out operationsSubmitted);
 
         /// <summary>
         /// Notifies the kernel of the availability of new Submission Queue Entries.
@@ -703,6 +702,6 @@ namespace IoUring
             => SubmitAndWait(0, out operationsSubmitted);
 
         private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
-            => (sqe = _sq.NextSubmissionQueueEntry(SubmissionPollingEnabled)) != NULL;
+            => (sqe = _sq.NextSubmissionQueueEntry()) != NULL;
     }
 }

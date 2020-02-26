@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring", "src\IoUring\IoUr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Tests", "tests\IoUring.Tests\IoUring.Tests.csproj", "{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IoUring.Benchmarks", "tests\IoUring.Benchmarks\IoUring.Benchmarks.csproj", "{235A7719-3964-455F-8876-91F564E41A2B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7D6701BF-56F4-43AD-B7C9-1EF815817AFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{235A7719-3964-455F-8876-91F564E41A2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{235A7719-3964-455F-8876-91F564E41A2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{235A7719-3964-455F-8876-91F564E41A2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{235A7719-3964-455F-8876-91F564E41A2B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
