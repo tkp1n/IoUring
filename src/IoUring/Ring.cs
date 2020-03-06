@@ -49,7 +49,7 @@ namespace IoUring
             return (sqSize, cqSize);
         }
 
-        private static SubmissionQueue MapSq(int ringFd, size_t sqSize, io_uring_params* p, bool sqPolled, out UnmapHandle sqHandle, out UnmapHandle sqeHandle)
+        private static SubmissionQueue MapSq(int ringFd, size_t sqSize, io_uring_params* p, bool sqPolled, bool ioPolled, out UnmapHandle sqHandle, out UnmapHandle sqeHandle)
         {
             var ptr = mmap(NULL, sqSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, ringFd, (long) IORING_OFF_SQ_RING);
             if (ptr == MAP_FAILED)
@@ -66,7 +66,7 @@ namespace IoUring
             }
             sqeHandle = new UnmapHandle(sqePtr, sqeSize);
 
-            return SubmissionQueue.CreateSubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr, sqPolled);
+            return SubmissionQueue.CreateSubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr, sqPolled, ioPolled);
         }
 
         private static CompletionQueue MapCq(int ringFd, size_t cqSize, io_uring_params* p, UnmapHandle sqHandle, bool ioPolled, out UnmapHandle cqHandle)
@@ -110,7 +110,7 @@ namespace IoUring
 
             try
             {
-                _sq = MapSq(fd, sqSize, &p, SubmissionPollingEnabled, out _sqHandle, out _sqeHandle);
+                _sq = MapSq(fd, sqSize, &p, SubmissionPollingEnabled, IoPollingEnabled, out _sqHandle, out _sqeHandle);
                 _cq = MapCq(fd, cqSize, &p, _sqHandle, IoPollingEnabled, out _cqHandle);
             }
             catch (ErrnoException)

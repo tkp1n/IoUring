@@ -68,7 +68,12 @@ namespace IoUring.Internal
         /// </summary>
         private readonly bool _sqPolled;
 
-        private SubmissionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* flags, uint* dropped, uint* array, io_uring_sqe* sqes, bool sqPolled)
+        /// <summary>
+        /// Whether the kernel is polling I/O
+        /// </summary>
+        private readonly bool _ioPolled;
+
+        private SubmissionQueue(uint* head, uint* tail, uint ringMask, uint ringEntries, uint* flags, uint* dropped, uint* array, io_uring_sqe* sqes, bool sqPolled, bool ioPolled)
         {
             _head = head;
             _tail = tail;
@@ -81,9 +86,10 @@ namespace IoUring.Internal
             _tailInternal = 0;
             _headInternal = 0;
             _sqPolled = sqPolled;
+            _ioPolled = ioPolled;
         }
 
-        public static SubmissionQueue CreateSubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements, bool sqPolled)
+        public static SubmissionQueue CreateSubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements, bool sqPolled, bool ioPolled)
             => new SubmissionQueue(
                 head: Add<uint>(ringBase, offsets->head),
                 tail: Add<uint>(ringBase, offsets->tail),
@@ -93,7 +99,8 @@ namespace IoUring.Internal
                 dropped: Add<uint>(ringBase, offsets->dropped),
                 array: Add<uint>(ringBase, offsets->array),
                 sqes: elements,
-                sqPolled: sqPolled
+                sqPolled: sqPolled,
+                ioPolled: ioPolled
             );
 
         /// <summary>
@@ -221,11 +228,20 @@ namespace IoUring.Internal
                 CheckNoSubmissionsDropped();
 
                 // Assume all Entries are already known to the kernel via Notify above
-                operationsSubmitted = toSubmit;
-                return SubmitResult.SubmittedSuccessfully;
+                goto SkipSyscall;
             }
 
-            if (minComplete > 0) enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
+            // For minComplete to take effect or if the kernel is polling for I/O, we must set IORING_ENTER_GETEVENTS
+            if (minComplete > 0 || _ioPolled)
+            {
+                enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
+            }
+            else if (toSubmit == 0)
+            {
+                // There are no submissions, we don't have to wait for completions and don't have to reap polled I/O completions
+                // --> We can skip the syscall and return directly.
+                goto SkipSyscall;
+            }
 
             int res;
             int err = default;
@@ -250,6 +266,10 @@ namespace IoUring.Internal
             return (operationsSubmitted = (uint) res) >= toSubmit ? 
                 SubmitResult.SubmittedSuccessfully : 
                 SubmitResult.SubmittedPartially;
+
+        SkipSyscall:
+            operationsSubmitted = toSubmit;
+            return SubmitResult.SubmittedSuccessfully;
         }
     }
 }
