@@ -15,11 +15,19 @@ jobs:
         dotnet-version: 3.1.101
     - name: Build with dotnet
       run: dotnet build
-    - name: Pack
+    - name: Pack IoUring
       if: github.ref == 'refs/heads/master'
       working-directory: ./src/IoUring
       run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
-    - name: Publish (MyGet)
+    - name: Publish IoUring (MyGet)
       if: github.ref == 'refs/heads/master'
       working-directory: ./src/IoUring
+      run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
+    - name: Pack IoUring.Concurrent
+      if: github.ref == 'refs/heads/master'
+      working-directory: ./src/IoUring.Concurrent
+      run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
+    - name: Publish IoUring.Concurrent (MyGet)
+      if: github.ref == 'refs/heads/master'
+      working-directory: ./src/IoUring.Concurrent
       run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package

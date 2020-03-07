@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
@@ -13,6 +14,15 @@ namespace IoUring.Internal
         public static T* Add<T>(void* a, uint b) where T : unmanaged
         {
             return (T*) ((IntPtr) a + (int) b);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint CompareExchange(ref uint location, uint value, uint comparand)
+        {
+            unchecked
+            {
+                return (uint) Interlocked.CompareExchange(ref Unsafe.As<uint, int>(ref location), (int)value, (int)comparand);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

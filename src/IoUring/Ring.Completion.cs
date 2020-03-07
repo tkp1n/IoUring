@@ -1,13 +1,9 @@
 using System;
-using IoUring.Internal;
 
 namespace IoUring
 {
-    public partial class Ring
+    public sealed partial class Ring
     {
-        private readonly CompletionQueue _cq;
-        private readonly UnmapHandle _cqHandle;
-
         /// <summary>
         /// Checks whether a Completion Queue Event is available.
         /// </summary>

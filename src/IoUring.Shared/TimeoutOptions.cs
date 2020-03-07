@@ -6,7 +6,7 @@ namespace IoUring
         /// Given timeout should be interpreted as relative value.
         /// </summary>
         Relative = 0,
-        
+
         /// <summary>
         /// Given timeout should be interpreted as absolute value.
         /// </summary>

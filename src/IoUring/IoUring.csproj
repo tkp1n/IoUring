@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
@@ -9,7 +9,7 @@
         <VersionPrefix>0.1.0</VersionPrefix>
 
         <Title>IoUring</Title>
-        <Copyright>Copyright © Nicolas Portmann 2019</Copyright>
+        <Copyright>Copyright © Nicolas Portmann 2020</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Authors>Nicolas Portmann</Authors>
         <Description>.NET wrapper for io_uring</Description>
@@ -25,8 +25,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.IO.Pipelines" Version="4.7.0" />
-      <PackageReference Include="Tmds.LibC" Version="0.4.0" />
+        <Compile Include="..\IoUring.Shared\*.cs" Link=".\*.cs" />
+        <Compile Include="..\IoUring.Shared\Internal\*.cs" Link=".\Internal\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Tmds.LibC" Version="0.4.0" />
     </ItemGroup>
 
     <ItemGroup>

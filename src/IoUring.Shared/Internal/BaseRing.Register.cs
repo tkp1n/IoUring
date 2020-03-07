@@ -3,9 +3,9 @@ using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.ThrowHelper;
 
-namespace IoUring
+namespace IoUring.Internal
 {
-    public sealed unsafe partial class Ring
+    public abstract unsafe partial class BaseRing
     {
         /// <summary>
         /// Registers a set of buffers with the kernel to reduce per I/O overhead.
@@ -16,7 +16,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">On failed syscall</exception>
         public void RegisterBuffers(iovec* iov, int iovcnt)
         {
-            if (iovcnt < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.iovcnt);
+            if (iovcnt < 0) ThrowArgumentOutOfRangeException(ThrowHelper.ExceptionArgument.iovcnt);
             Register(IORING_REGISTER_BUFFERS, iov, (uint) iovcnt);
         }
 
@@ -36,7 +36,7 @@ namespace IoUring
         /// <exception cref="ErrnoException">On failed syscall</exception>
         public void RegisterFiles(int* files, int nrFiles)
         {
-            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.nrFiles);
+            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ThrowHelper.ExceptionArgument.nrFiles);
             Register(IORING_REGISTER_FILES, files, (uint) nrFiles);
         }
 
@@ -56,7 +56,7 @@ namespace IoUring
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public void UpdateRegisteredFiles(uint off, int* files, int nrFiles)
         {
-            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ExceptionArgument.nrFiles);
+            if (nrFiles < 0) ThrowArgumentOutOfRangeException(ThrowHelper.ExceptionArgument.nrFiles);
 
             io_uring_files_update up;
             up.offset = off;

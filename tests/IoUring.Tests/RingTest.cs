@@ -205,7 +205,7 @@ namespace IoUring.Tests
             {
                 r.PrepareNop();
             });
-            
+
             Assert.False(r.TryPrepareNop());
         }
 

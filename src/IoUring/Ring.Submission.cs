@@ -1,18 +1,13 @@
 using System.Runtime.CompilerServices;
 using Tmds.Linux;
-using IoUring.Internal;
 using static Tmds.Linux.LibC;
-using static IoUring.Internal.Helpers;
 using static IoUring.Internal.ThrowHelper;
+using static IoUring.Internal.Helpers;
 
 namespace IoUring
 {
     public unsafe partial class Ring
     {
-        private readonly SubmissionQueue _sq;
-        private readonly UnmapHandle _sqHandle;
-        private readonly UnmapHandle _sqeHandle;
-
         /// <summary>
         /// Adds a NOP to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
@@ -463,7 +458,7 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None) 
+            SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWrite(IORING_OP_TIMEOUT, -1, ts, 1, count, (int) timeoutOptions, userData, options);
 
         /// <summary>
@@ -523,7 +518,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+        public bool TryPrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWrite(IORING_OP_ACCEPT, fd, addr, 0, (long) addrLen, flags, userData, options);
 
         /// <summary>
@@ -613,7 +608,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None) 
+        public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => TryPrepareReadWrite(IORING_OP_LINK_TIMEOUT, -1, ts, 1, 0, (int) timeoutOptions, userData, options);
 
         // internal for testing
@@ -679,27 +674,6 @@ namespace IoUring
 
             return true;
         }
-
-        /// <summary>
-        /// Notifies the kernel of the availability of new Submission Queue Entries and waits for a given number of completions to occur.
-        /// This typically requires a syscall and should be deferred as long as possible.
-        /// </summary>
-        /// <param name="minComplete">The number of completed Submission Queue Entries required before returning</param>
-        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
-        /// <returns>The result of the operation</returns>
-        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
-            => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), minComplete, out operationsSubmitted);
-
-        /// <summary>
-        /// Notifies the kernel of the availability of new Submission Queue Entries.
-        /// This typically requires a syscall and should be deferred as long as possible.
-        /// </summary>
-        /// <param name="operationsSubmitted">(out) The number of submitted Submission Queue Entries</param>
-        /// <returns>The result of the operation</returns>
-        /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
-        public SubmitResult Submit(out uint operationsSubmitted)
-            => SubmitAndWait(0, out operationsSubmitted);
 
         private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
             => (sqe = _sq.NextSubmissionQueueEntry()) != NULL;
