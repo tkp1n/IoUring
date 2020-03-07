@@ -1,3 +1,4 @@
+using System;
 using IoUring.Internal;
 
 namespace IoUring.Concurrent
@@ -17,6 +18,18 @@ namespace IoUring.Concurrent
         /// <returns>Whether a Submission Queue Entry could be acquired</returns>
         public bool TryAcquireSubmission(out Submission submission)
             => _sq.NextSubmissionQueueEntry(out submission);
+
+        /// <summary>
+        /// Attempts to acquire multiple Submission Queue Entries to be prepared.
+        /// </summary>
+        /// <remarks>
+        /// On success, the <see cref="Submission"/>s must immediately be prepared and <see cref="Submission.Release">released</see>.
+        /// Failure to do so will block all <see cref="Submission"/>s after the one acquired here.
+        /// </remarks>
+        /// <param name="submissions">Submission Queue Entries to prepare</param>
+        /// <returns>Whether the Submission Queue Entries could be acquired</returns>
+        public bool TryAcquireSubmissions(Span<Submission> submissions)
+            => _sq.NextSubmissionQueueEntries(submissions);
 
         /// <summary>
         /// Checks whether a Completion Queue Event is available.

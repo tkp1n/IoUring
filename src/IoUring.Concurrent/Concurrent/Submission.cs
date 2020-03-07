@@ -5,7 +5,7 @@ using static Tmds.Linux.LibC;
 
 namespace IoUring.Concurrent
 {
-    public readonly unsafe ref struct Submission
+    public readonly unsafe struct Submission
     {
         private readonly SubmissionQueue _sq;
         private readonly uint _index;

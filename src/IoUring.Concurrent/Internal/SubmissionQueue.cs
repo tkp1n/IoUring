@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -84,6 +85,40 @@ namespace IoUring.Internal
             Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
 
             submission = new Submission(this, idx);
+            return true;
+        }
+
+        public bool NextSubmissionQueueEntries(Span<Submission> submissions)
+        {
+            uint head;
+            uint tailInternal;
+            uint next;
+            uint nofSubmissions = (uint) submissions.Length;
+
+            do
+            {
+                head = _sqPolled ? Volatile.Read(ref *_head) : Volatile.Read(ref _headInternal);
+                tailInternal = _tailInternal;
+                next = unchecked(tailInternal + nofSubmissions);
+
+                if (next - head > _ringEntries)
+                {
+                    return false;
+                }
+            } while (CompareExchange(ref _tailInternal, next, tailInternal) != tailInternal);
+
+            for (int i = 0; i < nofSubmissions; i++)
+            {
+                uint idx = tailInternal++ & _ringMask;
+                var sqeInternal = &_sqes[idx];
+
+                Unsafe.InitBlockUnaligned(sqeInternal, 0x00, (uint) sizeof(io_uring_sqe));
+
+                Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
+
+                submissions[i] = new Submission(this, idx);
+            }
+
             return true;
         }
 
