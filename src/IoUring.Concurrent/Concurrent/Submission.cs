@@ -201,7 +201,7 @@ namespace IoUring.Concurrent
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void TryPrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => PrepareReadWrite(IORING_OP_TIMEOUT, -1, ts, 1, count, (int) timeoutOptions, userData, options);
 
         /// <summary>
