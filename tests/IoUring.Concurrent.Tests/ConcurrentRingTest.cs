@@ -127,5 +127,31 @@ namespace IoUring.Concurrent.Tests
                 t.Join();
             }
         }
+
+        [Fact]
+        public void SubmitIntermittedLinkedSubmissions()
+        {
+            var r = new ConcurrentRing(8);
+            Span<Submission> submissions = stackalloc Submission[2];
+
+            Assert.True(r.TryAcquireSubmissions(submissions));
+
+            submissions[0].PrepareNop(options: SubmissionOption.Link);
+            r.Release(submissions[0]);
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
+            Assert.Equal(1u, submitted);
+
+            Assert.True(r.TryRead(out _));
+
+            submissions[1].PrepareNop(options: SubmissionOption.Link);
+            r.Release(submissions[1]);
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
+            Assert.Equal(1u, submitted);
+
+            Assert.True(r.TryRead(out _));
+            Assert.False(r.TryRead(out _));
+        }
     }
 }
