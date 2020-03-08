@@ -6,6 +6,8 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
 
+        <NoWarn>436</NoWarn>
+
         <RootNamespace>IoUring</RootNamespace>
 
         <VersionPrefix>0.1.0</VersionPrefix>
@@ -29,6 +31,10 @@
     <ItemGroup>
         <Compile Include="..\IoUring.Shared\*.cs" Link=".\*.cs" />
         <Compile Include="..\IoUring.Shared\Internal\*.cs" Link=".\Internal\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\IoUring\IoUring.csproj" />
     </ItemGroup>
 
     <ItemGroup>

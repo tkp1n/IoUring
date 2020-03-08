@@ -37,7 +37,7 @@ namespace IoUring
         /// </summary>
         public int CompletionQueueSize { get; set; } = -1;
 
-        internal unsafe void WriteTo(io_uring_params* p)
+        public unsafe void WriteTo(io_uring_params* p)
         {
             if (EnableSubmissionPolling)
             {
