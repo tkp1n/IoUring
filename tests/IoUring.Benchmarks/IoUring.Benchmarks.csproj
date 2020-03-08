@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\IoUring\IoUring.csproj" />
+        <ProjectReference Include="..\..\src\IoUring.Concurrent\IoUring.Concurrent.csproj" />
     </ItemGroup>
 
 </Project>
