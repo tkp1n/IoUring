@@ -32,6 +32,13 @@ namespace IoUring.Concurrent
             => _sq.NextSubmissionQueueEntries(submissions);
 
         /// <summary>
+        /// Marks this <see cref="Submission"/> as fully prepared and ready to be submitted.
+        /// </summary>
+        /// <param name="submission">Submission Queue Entry that is fully prepared</param>
+        public void Release(Submission submission)
+            => _sq.NotifyPrepared(submission.Index);
+
+        /// <summary>
         /// Checks whether a Completion Queue Event is available.
         /// </summary>
         /// <param name="result">The data from the observed Completion Queue Event if any</param>

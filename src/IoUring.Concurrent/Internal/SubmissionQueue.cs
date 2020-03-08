@@ -84,7 +84,7 @@ namespace IoUring.Internal
 
             Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
 
-            submission = new Submission(this, idx);
+            submission = new Submission(sqeInternal, idx);
             return true;
         }
 
@@ -116,7 +116,7 @@ namespace IoUring.Internal
 
                 Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
 
-                submissions[i] = new Submission(this, idx);
+                submissions[i] = new Submission(sqeInternal, idx);
             }
 
             return true;

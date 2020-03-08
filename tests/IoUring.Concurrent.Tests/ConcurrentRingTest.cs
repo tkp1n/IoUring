@@ -24,7 +24,7 @@ namespace IoUring.Concurrent.Tests
                     {
                         Assert.True(r.TryAcquireSubmission(out var submission));
                         submission.PrepareNop();
-                        submission.Release();
+                        r.Release(submission);
                     }
                 });
             }
@@ -79,14 +79,14 @@ namespace IoUring.Concurrent.Tests
             {
                 threads[i] = new Thread(() =>
                 {
-                    Span<Submission> submissions = new Submission[batchSize];
+                    Span<Submission> submissions = stackalloc Submission[batchSize];
                     for (int j = 0; j < actionPerThread; j++)
                     {
                         Assert.True(r.TryAcquireSubmissions(submissions));
                         for (int k = 0; k < batchSize; k++)
                         {
                             submissions[k].PrepareNop();
-                            submissions[k].Release();
+                            r.Release(submissions[k]);
                         }
                     }
                 });

@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using IoUring.Internal;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 
@@ -7,14 +6,15 @@ namespace IoUring.Concurrent
 {
     public readonly unsafe struct Submission
     {
-        private readonly SubmissionQueue _sq;
-        private readonly uint _index;
+        private readonly io_uring_sqe* _sqe;
 
-        internal Submission(SubmissionQueue sq, uint index)
+        internal Submission(io_uring_sqe* sqe, uint index)
         {
-            _sq = sq;
-            _index = index;
+            _sqe = sqe;
+            Index = index;
         }
+
+        internal uint Index { get; }
 
         /// <summary>
         /// Prepares this Submission Queue Entry as a NOP.
@@ -23,7 +23,7 @@ namespace IoUring.Concurrent
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -69,7 +69,7 @@ namespace IoUring.Concurrent
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -116,7 +116,7 @@ namespace IoUring.Concurrent
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -136,7 +136,7 @@ namespace IoUring.Concurrent
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public void PreparePollRemove(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -157,7 +157,7 @@ namespace IoUring.Concurrent
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -258,7 +258,7 @@ namespace IoUring.Concurrent
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void PrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -276,7 +276,7 @@ namespace IoUring.Concurrent
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void PrepareReadWriteFixed(byte op, int fd, void* buf, size_t count, int index, off_t offset, ulong userData, SubmissionOption options)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -294,7 +294,7 @@ namespace IoUring.Concurrent
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void PrepareSendRecvMsg(byte op, int fd, msghdr* msg, int flags, ulong userData, SubmissionOption options)
         {
-            var sqe = _sq[_index];
+            var sqe = _sqe;
 
             unchecked
             {
@@ -307,7 +307,5 @@ namespace IoUring.Concurrent
                 sqe->user_data = userData;
             }
         }
-
-        public void Release() => _sq.NotifyPrepared(_index);
     }
 }
