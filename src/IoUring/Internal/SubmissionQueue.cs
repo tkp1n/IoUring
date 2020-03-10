@@ -84,16 +84,20 @@ namespace IoUring.Internal
         private uint Notify()
         {
             uint tail = *_tail;
+            uint head = *_head;
+            uint pending = unchecked(tail - head);
             uint tailInternal = _tailInternal;
             uint headInternal = _headInternal;
             if (headInternal == tailInternal)
             {
-                return tail - *_head;
+                return pending;
             }
 
             uint mask = _ringMask;
             uint* array = _array;
             uint toSubmit = unchecked(tailInternal - headInternal);
+            tail = unchecked(tail - pending);
+
             while (toSubmit-- != 0)
             {
                 array[tail & mask] = headInternal & mask;
@@ -101,12 +105,10 @@ namespace IoUring.Internal
                 headInternal = unchecked(headInternal + 1);
             }
 
-            _headInternal = headInternal;
-
             // write barrier to ensure all manipulations above are visible to the kernel once the tail-bump is observed
             Volatile.Write(ref *_tail, tail);
 
-            return tail - *_head;
+            return tail - head;
         }
 
         private bool ShouldEnter(out uint enterFlags)
@@ -171,6 +173,8 @@ namespace IoUring.Internal
             }
 
             CheckNoSubmissionsDropped();
+
+            _headInternal = unchecked(_headInternal + (uint)res);
 
             return (operationsSubmitted = (uint) res) >= toSubmit ?
                 SubmitResult.SubmittedSuccessfully :

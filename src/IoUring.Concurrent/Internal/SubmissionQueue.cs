@@ -162,12 +162,18 @@ namespace IoUring.Internal
             uint* array = _array;
             uint toSubmit = unchecked(tailInternal - headInternal);
             uint idx;
+            int oldState;
             while (toSubmit-- != 0)
             {
                 idx = headInternal & mask;
+                oldState = _states[idx];
 
-                Debug.Assert(_states[idx] == ReservedForPrep || _states[idx] == ReadyForSubmit);
-                if (_states[idx] != ReadyForSubmit)
+                Debug.Assert(
+                    oldState == ReservedForPrep || // Prep is still in progress
+                    oldState == ReadyForSubmit ||  // Prepped and ready to be submitted
+                    oldState == ReservedForSubmit  // Already submitted once (likely an item prior had an error)
+                );
+                if (oldState == ReservedForPrep)
                 {
                     // This is encountered when a producing thread reserved an SQE but did not finish preparing it for submission yet.
                     // Although there might be additional fully prepared SQEs further down the ring, we stop here and continue during the next invocation.
@@ -176,7 +182,12 @@ namespace IoUring.Internal
                 _states[idx] = ReservedForSubmit;
 
                 array[tail & mask] = idx;
-                tail = unchecked(tail + 1);
+                if (oldState != ReservedForSubmit)
+                {
+                     // Increment tail only once per transition to ReservedForSubmit
+                    tail = unchecked(tail + 1);
+                }
+
                 headInternal = unchecked(headInternal + 1);
             }
 

@@ -232,11 +232,21 @@ namespace IoUring.Tests
             // Submissions after invalid one are ignored by kernel without dropped being incremented
             Assert.False(r.TryRead(out _));
 
-            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
-            Assert.Equal(1u, submitted);
+            // Our ring size is 8 with 1 SQE still unsubmitted... we should only be able to prepare 7 additional SQEs
+            for (uint i = 0; i < 7; i++)
+            {
+                Assert.True(r.TryPrepareNop(4 + i));
+            }
+            Assert.False(r.TryPrepareNop(11u)); // This would overwrite the previously unsubmitted SQE
 
-            Assert.True(r.TryRead(out c));
-            Assert.Equal(3u, c.userData);
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
+            Assert.Equal(8u, submitted);
+
+            for (uint i = 0; i < 8; i++)
+            {
+                Assert.True(r.TryRead(out c));
+                Assert.Equal(3 + i, c.userData);
+            }
         }
     }
 }

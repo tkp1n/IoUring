@@ -255,8 +255,9 @@ namespace IoUring.Concurrent
         public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
             => PrepareReadWrite(IORING_OP_LINK_TIMEOUT, -1, ts, 1, 0, (int) timeoutOptions, userData, options);
 
+        // internal for testing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void PrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
+        internal void PrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
             var sqe = _sqe;
 

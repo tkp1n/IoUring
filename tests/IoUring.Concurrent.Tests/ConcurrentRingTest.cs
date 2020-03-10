@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Xunit;
+using static Tmds.Linux.LibC;
 
 namespace IoUring.Concurrent.Tests
 {
@@ -152,6 +153,60 @@ namespace IoUring.Concurrent.Tests
 
             Assert.True(r.TryRead(out _));
             Assert.False(r.TryRead(out _));
+        }
+
+        [Fact]
+        public unsafe void SubmissionWithInvalidArgumentsDoesNotIncrementDropped()
+        {
+            var r = new ConcurrentRing(8);
+
+            Assert.True(r.TryAcquireSubmission(out var submission));
+            submission.PrepareNop(1u);
+            r.Release(submission);
+
+            Assert.True(r.TryAcquireSubmission(out submission));
+            // prepare submission with invalid parameters
+            submission.PrepareReadWrite(99, -1, (void*) IntPtr.Zero, -12, 0, 0, 2u, SubmissionOption.None);
+            r.Release(submission);
+
+            Assert.True(r.TryAcquireSubmission(out submission));
+            submission.PrepareNop(3u);
+            r.Release(submission);
+
+            Assert.True(r.TryAcquireSubmission(out submission));
+            submission.PrepareNop(4u);
+            r.Release(submission);
+
+            Assert.Equal(SubmitResult.SubmittedPartially, r.SubmitAndWait(3, out var submitted));
+            Assert.Equal(2u, submitted);
+
+            Assert.True(r.TryRead(out var c));
+            Assert.Equal(1u, c.userData);
+
+            Assert.True(r.TryRead(out c));
+            Assert.Equal(2u, c.userData);
+            Assert.Equal(EINVAL, -c.result);
+
+            // Submissions after invalid one are ignored by kernel without dropped being incremented
+            Assert.False(r.TryRead(out _));
+
+            // Our ring size is 8 with 2 SQE still unsubmitted... we should only be able to prepare 6 additional SQEs
+            for (uint i = 0; i < 6; i++)
+            {
+                Assert.True(r.TryAcquireSubmission(out submission));
+                submission.PrepareNop(5 + i);
+                r.Release(submission);
+            }
+            Assert.False(r.TryAcquireSubmission(out submission)); // This would overwrite the previously unsubmitted SQE
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out submitted));
+            Assert.Equal(8u, submitted);
+
+            for (uint i = 0; i < 8; i++)
+            {
+                Assert.True(r.TryRead(out c));
+                Assert.Equal(3 + i, c.userData);
+            }
         }
     }
 }
