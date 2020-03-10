@@ -2,6 +2,10 @@ name: .NET Core
 
 on: [push, pull_request]
 
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+
 jobs:
   build:
 
@@ -13,21 +17,11 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.101
-    - name: Build with dotnet
+    - name: Build
       run: dotnet build
-    - name: Pack IoUring
+    - name: Pack
       if: github.ref == 'refs/heads/master'
-      working-directory: ./src/IoUring
       run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
-    - name: Publish IoUring (MyGet)
+    - name: Publish (MyGet)
       if: github.ref == 'refs/heads/master'
-      working-directory: ./src/IoUring
-      run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
-    - name: Pack IoUring.Concurrent
-      if: github.ref == 'refs/heads/master'
-      working-directory: ./src/IoUring.Concurrent
-      run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
-    - name: Publish IoUring.Concurrent (MyGet)
-      if: github.ref == 'refs/heads/master'
-      working-directory: ./src/IoUring.Concurrent
-      run: dotnet nuget push *.nupkg --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v2/package
+      run: ls *.nupkg | xargs -i dotnet nuget push {} --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v3/index.json
