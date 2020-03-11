@@ -13,7 +13,6 @@ namespace IoUring.Internal
             uint tail;
             do
             {
-StartLoop:
                 head = Volatile.Read(ref *_head);
                 tail = *_tail;
 
@@ -23,11 +22,21 @@ StartLoop:
                     {
                         // If the kernel is polling I/O, we must reap completions.
                         PollCompletion(ringFd);
-                        goto StartLoop;
-                    }
 
-                    result = default;
-                    return false;
+                        // double check
+                        head = Volatile.Read(ref *_head);
+                        tail = *_tail;
+                        if (head == tail) // bail
+                        {
+                            result = default;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        result = default;
+                        return false;
+                    }
                 }
 
                 next = unchecked(head + 1);
