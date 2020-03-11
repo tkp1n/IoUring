@@ -49,7 +49,7 @@ namespace IoUring.Internal
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                uint head = _sqPolled ? Volatile.Read(ref *_head) : _headInternal;
+                uint head = _sqPolled ? Volatile.Read(ref *_head) : Volatile.Read(ref _headInternal);
                 return unchecked(_tailInternal - head);
             }
         }
