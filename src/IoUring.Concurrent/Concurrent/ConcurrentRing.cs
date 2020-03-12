@@ -5,13 +5,17 @@ namespace IoUring.Concurrent
 {
     public sealed class ConcurrentRing : BaseRing
     {
-        public ConcurrentRing(int entries, RingOptions? options = null) : base(entries, options) { }
+        public ConcurrentRing(int entries, RingOptions? options = null) : base(entries, options)
+        {
+            if (options != null && (options.EnablePolledIo || options.EnableSubmissionPolling))
+                throw new NotSupportedException($"Polling options are not available for {nameof(ConcurrentRing)}");
+        }
 
         /// <summary>
         /// Attempts to acquire a Submission Queue Entry to be prepared.
         /// </summary>
         /// <remarks>
-        /// On success, the <see cref="Submission"/> must immediately be prepared and <see cref="Submission.Release">released</see>.
+        /// On success, the <see cref="Submission"/> must immediately be prepared and <see cref="Release">d</see>.
         /// Failure to do so will block all <see cref="Submission"/>s after the one acquired here.
         /// </remarks>
         /// <param name="submission">Submission Queue Entry to prepare</param>
@@ -20,10 +24,24 @@ namespace IoUring.Concurrent
             => _sq.NextSubmissionQueueEntry(out submission);
 
         /// <summary>
+        /// Acquires a Submission Queue Entry to be prepared.
+        /// </summary>
+        /// <remarks>
+        /// On success, the <see cref="Submission"/> must immediately be prepared and <see cref="Release">d</see>.
+        /// Failure to do so will block all <see cref="Submission"/>s after the one acquired here.
+        /// </remarks>
+        /// <param name="submission">Submission Queue Entry to prepare</param>
+        /// <exception cref="SubmissionQueueFullException">If the Submission Queue is full</exception>
+        public void AcquireSubmission(out Submission submission)
+        {
+            if (!TryAcquireSubmission(out submission)) throw new SubmissionQueueFullException();
+        }
+
+        /// <summary>
         /// Attempts to acquire multiple Submission Queue Entries to be prepared.
         /// </summary>
         /// <remarks>
-        /// On success, the <see cref="Submission"/>s must immediately be prepared and <see cref="Submission.Release">released</see>.
+        /// On success, the <see cref="Submission"/>s must immediately be prepared and <see cref="Release">d</see>.
         /// Failure to do so will block all <see cref="Submission"/>s after the one acquired here.
         /// </remarks>
         /// <param name="submissions">Submission Queue Entries to prepare</param>
@@ -32,8 +50,22 @@ namespace IoUring.Concurrent
             => _sq.NextSubmissionQueueEntries(submissions);
 
         /// <summary>
-        /// Marks this <see cref="Submission"/> as fully prepared and ready to be submitted.
+        /// Acquires multiple Submission Queue Entries to be prepared.
         /// </summary>
+        /// <remarks>
+        /// On success, the <see cref="Submission"/>s must immediately be prepared and <see cref="Release">d</see>.
+        /// Failure to do so will block all <see cref="Submission"/>s after the one acquired here.
+        /// </remarks>
+        /// <param name="submissions">Submission Queue Entries to prepare</param>
+        /// <exception cref="SubmissionQueueFullException">If the Submission Queue is full</exception>
+        public void AcquireSubmissions(Span<Submission> submissions)
+        {
+            if (!TryAcquireSubmissions(submissions)) throw new SubmissionQueueFullException();
+        }
+
+        /// <summary>
+        /// Marks this <see cref="Submission"/> as fully prepared and ready to be submitted.
+        /// </summary>released
         /// <param name="submission">Submission Queue Entry that is fully prepared</param>
         public void Release(Submission submission)
             => _sq.NotifyPrepared(submission.Index);

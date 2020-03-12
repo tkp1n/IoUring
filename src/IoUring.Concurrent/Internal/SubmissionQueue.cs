@@ -49,12 +49,9 @@ namespace IoUring.Internal
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                uint head = _sqPolled ? Volatile.Read(ref *_head) : Volatile.Read(ref _headInternal);
-                return unchecked(_tailInternal - head);
+                return unchecked(Volatile.Read(ref _tailInternal) - Volatile.Read(ref _headInternal));
             }
         }
-
-        internal io_uring_sqe* this[uint index] => &_sqes[index];
 
         private object Gate => this;
 
@@ -66,8 +63,8 @@ namespace IoUring.Internal
 
             do
             {
-                head = _sqPolled ? Volatile.Read(ref *_head) : Volatile.Read(ref _headInternal);
-                tailInternal = _tailInternal;
+                tailInternal = Volatile.Read(ref _tailInternal);
+                head = _headInternal;
                 next = unchecked(tailInternal + 1);
 
                 if (next - head > _ringEntries)
@@ -97,8 +94,8 @@ namespace IoUring.Internal
 
             do
             {
-                head = _sqPolled ? Volatile.Read(ref *_head) : Volatile.Read(ref _headInternal);
-                tailInternal = _tailInternal;
+                tailInternal = Volatile.Read(ref _tailInternal);
+                head = _headInternal;
                 next = unchecked(tailInternal + nofSubmissions);
 
                 if (next - head > _ringEntries)
@@ -109,7 +106,8 @@ namespace IoUring.Internal
 
             for (int i = 0; i < nofSubmissions; i++)
             {
-                uint idx = tailInternal++ & _ringMask;
+                uint idx = tailInternal & _ringMask;
+                tailInternal = unchecked(tailInternal + 1);
                 var sqeInternal = &_sqes[idx];
 
                 Unsafe.InitBlockUnaligned(sqeInternal, 0x00, (uint) sizeof(io_uring_sqe));
@@ -131,33 +129,18 @@ namespace IoUring.Internal
 #endif
         }
 
-        private bool ShouldEnter(out uint enterFlags)
-        {
-            enterFlags = 0;
-            if (!_sqPolled) return true;
-            if ((*_flags & IORING_SQ_NEED_WAKEUP) != 0)
-            {
-                // Kernel is polling but transitioned to idle (IORING_SQ_NEED_WAKEUP)
-                enterFlags |= IORING_ENTER_SQ_WAKEUP;
-                return true;
-            }
-
-            // Kernel is still actively polling
-            return false;
-        }
-
         private uint Notify()
         {
             Debug.Assert(Monitor.IsEntered(Gate));
 
-            uint tail = *_tail;
             uint tailInternal = _tailInternal;
             uint headInternal = _headInternal;
             if (headInternal == tailInternal)
             {
-                return tail - *_head;
+                return 0;
             }
 
+            uint tail = *_tail;
             uint mask = _ringMask;
             uint* array = _array;
             uint toSubmit = unchecked(tailInternal - headInternal);
@@ -167,19 +150,18 @@ namespace IoUring.Internal
             {
                 idx = headInternal & mask;
                 oldState = _states[idx];
-
-                Debug.Assert(
-                    oldState == ReservedForPrep || // Prep is still in progress
-                    oldState == ReadyForSubmit ||  // Prepped and ready to be submitted
-                    oldState == ReservedForSubmit  // Already submitted once (likely an item prior had an error)
-                );
-                if (oldState == ReservedForPrep)
+                if (oldState < ReadyForSubmit)
                 {
-                    // This is encountered when a producing thread reserved an SQE but did not finish preparing it for submission yet.
+                    // This is encountered when a producing thread did not finish preparing the SQE for submission yet.
                     // Although there might be additional fully prepared SQEs further down the ring, we stop here and continue during the next invocation.
                     break;
                 }
+
+#if DEBUG
+                Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForSubmit, oldState) == oldState);
+#else
                 _states[idx] = ReservedForSubmit;
+#endif
 
                 array[tail & mask] = idx;
                 if (oldState != ReservedForSubmit)
@@ -211,9 +193,11 @@ namespace IoUring.Internal
             while (submitted-- != 0)
             {
                 idx = headInternal & mask;
-                Debug.Assert(_states[idx] == ReservedForSubmit);
+#if DEBUG
+                Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReadyForPrep, ReservedForSubmit) == ReservedForSubmit);
+#else
                 _states[idx] = ReadyForPrep;
-
+#endif
                 headInternal = unchecked(headInternal + 1);
             }
 
@@ -225,26 +209,18 @@ namespace IoUring.Internal
             lock (Gate)
             {
                 uint toSubmit = Notify();
-
-                if (!ShouldEnter(out uint enterFlags))
+                if (toSubmit == 0 && minComplete == 0)
                 {
-                    CheckNoSubmissionsDropped();
+                    Debug.Assert(Volatile.Read(ref *_head) == _headInternal);
 
-                    // Assume all Entries are already known to the kernel via Notify above
-                    goto SkipSyscall;
-                }
-
-                // For minComplete to take effect or if the kernel is polling for I/O, we must set IORING_ENTER_GETEVENTS
-                if (minComplete > 0 || _ioPolled)
-                {
-                    enterFlags |= IORING_ENTER_GETEVENTS; // required for minComplete to take effect
-                }
-                else if (toSubmit == 0)
-                {
                     // There are no submissions, we don't have to wait for completions and don't have to reap polled I/O completions
                     // --> We can skip the syscall and return directly.
-                    goto SkipSyscall;
+                    operationsSubmitted = default;
+                    return SubmitResult.SubmittedSuccessfully;
                 }
+
+                // For minComplete to take effect, we must set IORING_ENTER_GETEVENTS
+                uint enterFlags = minComplete > 0 ? IORING_ENTER_GETEVENTS : 0;
 
                 int res;
                 int err = default;
@@ -257,6 +233,8 @@ namespace IoUring.Internal
                 {
                     if (err == EAGAIN || err == EBUSY)
                     {
+                        Debug.Assert(Volatile.Read(ref *_head) == _headInternal);
+
                         operationsSubmitted = default;
                         return SubmitResult.AwaitCompletions;
                     }
@@ -266,16 +244,14 @@ namespace IoUring.Internal
 
                 CheckNoSubmissionsDropped();
 
+                Debug.Assert(unchecked(Volatile.Read(ref *_head) - _headInternal) == res);
+
                 uint submitted = (uint) res;
                 UpdateInternals(submitted);
 
                 return (operationsSubmitted = submitted) >= toSubmit ?
                     SubmitResult.SubmittedSuccessfully :
                     SubmitResult.SubmittedPartially;
-
-            SkipSyscall:
-                operationsSubmitted = toSubmit;
-                return SubmitResult.SubmittedSuccessfully;
             }
         }
     }
