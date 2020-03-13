@@ -67,6 +67,13 @@ namespace IoUring.Internal
                 head = _headInternal;
                 next = unchecked(tailInternal + 1);
 
+                if (head > tailInternal)
+                {
+                    // unfortunate interleaving occurred
+                    tailInternal = UInt32.MaxValue; // ensure below CompareExchange fails and try again
+                    continue;
+                }
+
                 if (next - head > _ringEntries)
                 {
                     submission = default;
@@ -97,6 +104,13 @@ namespace IoUring.Internal
                 tailInternal = Volatile.Read(ref _tailInternal);
                 head = _headInternal;
                 next = unchecked(tailInternal + nofSubmissions);
+
+                if (head > tailInternal)
+                {
+                    // unfortunate interleaving occurred
+                    tailInternal = UInt32.MaxValue; // ensure below CompareExchange fails and try again
+                    continue;
+                }
 
                 if (next - head > _ringEntries)
                 {

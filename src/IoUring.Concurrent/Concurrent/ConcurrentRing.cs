@@ -1,5 +1,6 @@
 using System;
 using IoUring.Internal;
+using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Concurrent
 {
@@ -34,7 +35,7 @@ namespace IoUring.Concurrent
         /// <exception cref="SubmissionQueueFullException">If the Submission Queue is full</exception>
         public void AcquireSubmission(out Submission submission)
         {
-            if (!TryAcquireSubmission(out submission)) throw new SubmissionQueueFullException();
+            if (!TryAcquireSubmission(out submission)) ThrowSubmissionQueueFullException();
         }
 
         /// <summary>
@@ -60,7 +61,7 @@ namespace IoUring.Concurrent
         /// <exception cref="SubmissionQueueFullException">If the Submission Queue is full</exception>
         public void AcquireSubmissions(Span<Submission> submissions)
         {
-            if (!TryAcquireSubmissions(submissions)) throw new SubmissionQueueFullException();
+            if (!TryAcquireSubmissions(submissions)) ThrowSubmissionQueueFullException();
         }
 
         /// <summary>
