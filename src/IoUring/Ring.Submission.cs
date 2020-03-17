@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.ThrowHelper;
@@ -35,9 +34,13 @@ namespace IoUring
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = IORING_OP_NOP;
-            sqe->flags = (byte) options;
-            sqe->user_data = userData;
+            unchecked
+            {
+                sqe->opcode = IORING_OP_NOP;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->user_data = userData;
+            }
 
             return true;
         }
@@ -54,9 +57,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareReadV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareReadV(fd, iov, count, offset, flags, userData, options))
             {
@@ -76,10 +77,25 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareReadV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_READV, fd, iov, count, offset, flags, userData, options);
+        public bool TryPrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_READV;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->addr = (ulong) iov;
+                sqe->len = (uint) count;
+                sqe->rw_flags = flags;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a writev, pwritev or pwritev2 to the Submission Queue without it being submitted.
@@ -93,9 +109,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareWriteV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareWriteV(fd, iov, count, offset, flags, userData, options))
             {
@@ -115,10 +129,25 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareWriteV(
-            int fd, iovec* iov, int count, off_t offset = default, int flags = 0,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_WRITEV, fd, iov, count, offset, flags, userData, options);
+        public bool TryPrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_WRITEV;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->addr = (ulong) iov;
+                sqe->len = (uint) count;
+                sqe->rw_flags = flags;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a fsync to the Submission Queue without it being submitted.
@@ -129,8 +158,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareFsync(fd, fsyncOptions, userData, options))
             {
@@ -147,18 +175,19 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = IORING_OP_FSYNC;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->fsync_flags = (uint) fsyncOptions;
-            sqe->user_data = userData;
+            unchecked
+            {
+                sqe->opcode = IORING_OP_FSYNC;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->fsync_flags = (uint) fsyncOptions;
+                sqe->user_data = userData;
+            }
 
             return true;
         }
@@ -168,15 +197,14 @@ namespace IoUring
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="fd">File descriptor to read from</param>
-        /// <param name="buf">Buffers to read from</param>
-        /// <param name="count">Number of buffers</param>
-        /// <param name="index"></param>
-        /// <param name="offset">Offset in bytes into buffer (as per preadv)</param>
+        /// <param name="buf">Buffer/file to read to</param>
+        /// <param name="count">Number of bytes to read</param>
+        /// <param name="index">Index of buffer/file</param>
+        /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareReadFixed(fd, buf, count, index, offset, userData, options))
             {
@@ -189,31 +217,46 @@ namespace IoUring
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="fd">File descriptor to read from</param>
-        /// <param name="buf">Buffers to read from</param>
-        /// <param name="count">Number of buffers</param>
-        /// <param name="index"></param>
-        /// <param name="offset">Offset in bytes into buffer (as per preadv)</param>
+        /// <param name="buf">Buffer/file to read to</param>
+        /// <param name="count">Number of bytes to read</param>
+        /// <param name="index">Index of buffer/file</param>
+        /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWriteFixed(IORING_OP_READ_FIXED, fd, buf, count, index, offset, userData, options);
+        public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_READ_FIXED;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->addr = (ulong) buf;
+                sqe->len = (uint) count;
+                sqe->user_data = userData;
+                sqe->buf_index = (ushort) index;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a write using a registered buffer/file to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="fd">File descriptor to write to</param>
-        /// <param name="buf">Buffers to write</param>
-        /// <param name="count">Number of buffers</param>
-        /// <param name="index"></param>
-        /// <param name="offset">Offset in bytes into buffer (as per pwritev)</param>
+        /// <param name="buf">Buffer/file to write</param>
+        /// <param name="count">Number of bytes to write</param>
+        /// <param name="index">Index of buffer/file</param>
+        /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareWriteFixed(fd, buf, count, index, offset, userData, options))
             {
@@ -226,16 +269,32 @@ namespace IoUring
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="fd">File descriptor to write to</param>
-        /// <param name="buf">Buffers to write</param>
-        /// <param name="count">Number of buffers</param>
-        /// <param name="index"></param>
-        /// <param name="offset">Offset in bytes into buffer (as per pwritev)</param>
+        /// <param name="buf">Buffer/file to write</param>
+        /// <param name="count">Number of bytes to write</param>
+        /// <param name="index">Index of buffer/file</param>
+        /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default,
-            ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWriteFixed(IORING_OP_WRITE_FIXED, fd, buf, count, index, offset, userData, options);
+        public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_WRITE_FIXED;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->addr = (ulong) buf;
+                sqe->len = (uint) count;
+                sqe->user_data = userData;
+                sqe->buf_index = (ushort) index;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a one-shot poll of the file descriptor to the Submission Queue without it being submitted.
@@ -246,8 +305,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
+        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPreparePollAdd(fd, pollEvents, userData, options))
             {
@@ -264,17 +322,19 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
+        public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = IORING_OP_POLL_ADD;
-            sqe->flags = (byte) options;
-            sqe->fd = fd;
-            sqe->poll_events = pollEvents;
-            sqe->user_data = userData;
+            unchecked
+            {
+                sqe->opcode = IORING_OP_POLL_ADD;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->poll_events = pollEvents;
+                sqe->user_data = userData;
+            }
 
             return true;
         }
@@ -283,12 +343,13 @@ namespace IoUring
         /// Adds a request for removal of a previously added poll request to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
+        /// <param name="pollUserData">userData of the poll submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PreparePollRemove(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            if (!TryPreparePollRemove(userData, options))
+            if (!TryPreparePollRemove(pollUserData, userData, options))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -298,17 +359,23 @@ namespace IoUring
         /// Attempts to add a request for removal of a previously added poll request to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
+        /// <param name="pollUserData">userData of the poll submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPreparePollRemove(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
 
-            sqe->opcode = IORING_OP_POLL_REMOVE;
-            sqe->flags = (byte) options;
-            sqe->user_data = userData;
+            unchecked
+            {
+                sqe->opcode = IORING_OP_POLL_REMOVE;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->addr = pollUserData;
+                sqe->user_data = userData;
+            }
 
             return true;
         }
@@ -368,12 +435,11 @@ namespace IoUring
         /// </summary>
         /// <param name="fd">File descriptor to send to</param>
         /// <param name="msg">Message to send</param>
-        /// <param name="flags">Flags for the operator (as per sendmsg)</param>
+        /// <param name="flags">Flags for the operation (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareSendMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
+        public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareSendMsg(fd, msg, flags, userData, options))
             {
@@ -387,13 +453,28 @@ namespace IoUring
         /// </summary>
         /// <param name="fd">File descriptor to send to</param>
         /// <param name="msg">Message to send</param>
-        /// <param name="flags">Flags for the operator (as per sendmsg)</param>
+        /// <param name="flags">Flags for the operation (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareSendMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
-            => TryPrepareSendRecvMsg(IORING_OP_SENDMSG, fd, msg, flags, userData, options);
+        public bool TryPrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_SENDMSG;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->addr = (ulong) msg;
+                sqe->len = 1;
+                sqe->msg_flags = flags;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a recvmsg to the Submission Queue without it being submitted.
@@ -401,12 +482,11 @@ namespace IoUring
         /// </summary>
         /// <param name="fd">File descriptor to receive from</param>
         /// <param name="msg">Message to read to</param>
-        /// <param name="flags">Flags for the operator (as per recvmsg)</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareRecvMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
+        public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareRecvMsg(fd, msg, flags, userData, options))
             {
@@ -420,13 +500,28 @@ namespace IoUring
         /// </summary>
         /// <param name="fd">File descriptor to receive from</param>
         /// <param name="msg">Message to read to</param>
-        /// <param name="flags">Flags for the operator (as per recvmsg)</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareRecvMsg(int fd, msghdr* msg, int flags, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
-            => TryPrepareSendRecvMsg(IORING_OP_RECVMSG, fd, msg, flags, userData, options);
+        public bool TryPrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_RECVMSG;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->addr = (ulong) msg;
+                sqe->len = 1;
+                sqe->msg_flags = flags;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a timeout to the Submission Queue without it being submitted.
@@ -438,8 +533,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
+        public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareTimeout(ts, count, timeoutOptions, userData, options))
             {
@@ -457,9 +551,25 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareTimeout(timespec *ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0,
-            SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_TIMEOUT, -1, ts, 1, count, (int) timeoutOptions, userData, options);
+        public bool TryPrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_TIMEOUT;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->off = count;
+                sqe->addr = (ulong) ts;
+                sqe->len = 1;
+                sqe->timeout_flags = (uint) timeoutOptions;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds the removal of a timeout to the Submission Queue without it being submitted.
@@ -486,20 +596,34 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_TIMEOUT_REMOVE, -1, (void*) timeoutUserData, 0, 0, 0, userData, options);
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_TIMEOUT_REMOVE;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->addr = timeoutUserData;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds an accept to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
-        /// <param name="fd">File descriptor to accept on</param>
+        /// <param name="fd">File descriptor to accept from</param>
         /// <param name="addr">(out) the address of the connected client.</param>
         /// <param name="addrLen">(out) the length of the address</param>
         /// <param name="flags">Flags as per accept4</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareAccept(fd, addr, addrLen, flags, userData, options))
             {
@@ -511,15 +635,31 @@ namespace IoUring
         /// Attempts to add an accept to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
-        /// <param name="fd">File descriptor to accept on</param>
+        /// <param name="fd">File descriptor to accept from</param>
         /// <param name="addr">(out) the address of the connected client.</param>
         /// <param name="addrLen">(out) the length of the address</param>
         /// <param name="flags">Flags as per accept4</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareAccept(int fd, sockaddr *addr, socklen_t *addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_ACCEPT, fd, addr, 0, (long) addrLen, flags, userData, options);
+        public bool TryPrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_ACCEPT;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = (ulong) addrLen;
+                sqe->addr = (ulong) addr;
+                sqe->accept_flags = (uint) flags;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds the cancellation of a previously submitted item to the Submission Queue without it being submitted.
@@ -546,7 +686,21 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_ASYNC_CANCEL, -1, (void*) opUserData, 0, 0, 0, userData, options);
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_ASYNC_CANCEL;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->addr = opUserData;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Adds a connect to the Submission Queue without it being submitted.
@@ -557,7 +711,6 @@ namespace IoUring
         /// <param name="addrLen">The length of the address</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
         public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
@@ -579,7 +732,20 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
-            return TryPrepareReadWrite(IORING_OP_CONNECT, fd, addr, 0, (uint) addrLen, 0, userData, options);
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_CONNECT;
+                sqe->flags = (byte) options;
+                sqe->fd = fd;
+                sqe->off = addrLen;
+                sqe->addr = (ulong) addr;
+                sqe->user_data = userData;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -591,7 +757,7 @@ namespace IoUring
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
         {
             if (!TryPrepareLinkTimeout(ts, timeoutOptions, userData, options))
             {
@@ -609,10 +775,25 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
-            => TryPrepareReadWrite(IORING_OP_LINK_TIMEOUT, -1, ts, 1, 0, (int) timeoutOptions, userData, options);
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+                return false;
 
-        // internal for testing
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            unchecked
+            {
+                sqe->opcode = IORING_OP_LINK_TIMEOUT;
+                sqe->flags = (byte) options;
+                sqe->fd = -1;
+                sqe->addr = (ulong) ts;
+                sqe->len = 1;
+                sqe->timeout_flags = (uint) timeoutOptions;
+                sqe->user_data = userData;
+            }
+
+            return true;
+        }
+
+        // Visible for testing
         internal bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
@@ -627,48 +808,6 @@ namespace IoUring
                 sqe->addr = (ulong) iov;
                 sqe->len = (uint) count;
                 sqe->rw_flags = flags;
-                sqe->user_data = userData;
-            }
-
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryPrepareReadWriteFixed(byte op, int fd, void* buf, size_t count, int index, off_t offset, ulong userData, SubmissionOption options)
-        {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
-
-            unchecked
-            {
-                sqe->opcode = op;
-                sqe->flags = (byte) options;
-                sqe->fd = fd;
-                sqe->off = (ulong) (long) offset;
-                sqe->addr = (ulong) buf;
-                sqe->len = (uint) count;
-                sqe->buf_index = (ushort) index;
-                sqe->user_data = userData;
-            }
-
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryPrepareSendRecvMsg(byte op, int fd, msghdr* msg, int flags, ulong userData,
-            SubmissionOption options)
-        {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
-
-            unchecked
-            {
-                sqe->opcode = op;
-                sqe->flags = (byte) options;
-                sqe->fd = fd;
-                sqe->addr = (ulong) msg;
-                sqe->len = 1;
-                sqe->msg_flags = (uint) flags;
                 sqe->user_data = userData;
             }
 
