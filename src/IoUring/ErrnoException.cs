@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using static Tmds.Linux.LibC;
 
@@ -7,16 +9,27 @@ namespace IoUring
     /// <summary>
     /// Exception thrown on errors during a syscall
     /// </summary>
-    public class ErrnoException : Exception
+    public class ErrnoException : IOException
     {
-        public int Errno { get; }
+        private static readonly Dictionary<int, string> ErrnoMessages = new Dictionary<int, string>();
 
-        public ErrnoException(int errno) : base(GetErrorMessage(errno))
+        public int Errno => HResult;
+
+        public ErrnoException(int errno) : base(GetErrorMessage(errno), errno) { }
+
+        public static string GetErrorMessage(int errno)
         {
-            Errno = errno;
+            lock (ErrnoMessages)
+            {
+                if (ErrnoMessages.TryGetValue(errno, out var message)) return message;
+
+                message = CreateErrorMessage(errno);
+                ErrnoMessages[errno] = message;
+                return message;
+            }
         }
 
-        private unsafe static string GetErrorMessage(int errno)
+        private static unsafe string CreateErrorMessage(int errno)
         {
             const int bufferLength = 1024;
             byte* buffer = stackalloc byte[bufferLength];
