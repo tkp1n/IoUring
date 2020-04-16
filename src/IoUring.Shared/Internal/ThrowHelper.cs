@@ -66,7 +66,11 @@ namespace IoUring.Internal
         {
             entries,
             iovcnt,
-            nrFiles
+            major,
+            minor,
+            nrFiles,
+            obj,
+            options
         }
     }
 }

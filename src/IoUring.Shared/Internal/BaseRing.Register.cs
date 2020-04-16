@@ -60,7 +60,7 @@ namespace IoUring.Internal
 
             io_uring_files_update up;
             up.offset = off;
-            up.fds = files;
+            up.fds = (ulong) files;
 
             Register(IORING_REGISTER_FILES_UPDATE, &up, (uint) nrFiles);
         }

@@ -6,10 +6,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Tmds.LibC" Version="0.4.0" />
+      <PackageReference Include="Tmds.LibC" Version="0.5.0-200414-200" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="io_uring.xml" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+        <None Include="io_uring.xml" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

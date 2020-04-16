@@ -1,5 +1,7 @@
 using System;
+using IoUring.Internal;
 using Tmds.Linux;
+using static IoUring.Internal.ThrowHelper;
 using static Tmds.Linux.LibC;
 
 namespace IoUring
@@ -37,7 +39,9 @@ namespace IoUring
         /// </summary>
         public int CompletionQueueSize { get; set; } = -1;
 
-        public unsafe void WriteTo(io_uring_params* p)
+        internal int WorkQueueFd { get; set; } = -1;
+
+        public unsafe void WriteTo(io_uring_params* p, uint entries)
         {
             if (EnableSubmissionPolling)
             {
@@ -59,9 +63,22 @@ namespace IoUring
                 p->flags |= IORING_SETUP_IOPOLL;
             }
 
-            if (CompletionQueueSize >= 0)
+            if (CompletionQueueSize >= 0 && KernelVersion.Supports.IORING_SETUP_CQSIZE)
             {
+                if (CompletionQueueSize <= entries) ThrowArgumentOutOfRangeException(ExceptionArgument.options);
+                p->flags |= IORING_SETUP_CQSIZE;
                 p->cq_entries = (uint) CompletionQueueSize;
+            }
+
+            if (KernelVersion.Supports.IORING_SETUP_CLAMP)
+            {
+                p->flags |= IORING_SETUP_CLAMP;
+            }
+
+            if (WorkQueueFd != -1 && KernelVersion.Supports.IORING_SETUP_ATTACH_WQ)
+            {
+                p->flags |= IORING_SETUP_ATTACH_WQ;
+                p->wq_fd = (uint) WorkQueueFd;
             }
         }
     }

@@ -30,7 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Tmds.LibC" Version="0.4.0" />
+        <PackageReference Include="Tmds.LibC" Version="0.5.0-200414-200" />
     </ItemGroup>
 
     <ItemGroup>
@@ -40,6 +40,9 @@
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
             <_Parameter1>$(AssemblyName).Tests</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>$(AssemblyName).Concurrent</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
 </Project>
