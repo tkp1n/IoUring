@@ -22,7 +22,7 @@ namespace IoUring.Internal
 
         private static int Setup(uint entries, io_uring_params* p, RingOptions? options)
         {
-            options?.WriteTo(p);
+            options?.WriteTo(p, entries);
 
             int fd = io_uring_setup(entries, p);
             if (fd < 0)
@@ -100,7 +100,7 @@ namespace IoUring.Internal
 
         protected BaseRing(int entries, RingOptions? ringOptions = default)
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) ThrowPlatformNotSupportedException();
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || !KernelVersion.Supports.IoUring) ThrowPlatformNotSupportedException();
             if (entries < 1) ThrowArgumentOutOfRangeException(ExceptionArgument.entries);
 
             io_uring_params p = default;
@@ -126,6 +126,8 @@ namespace IoUring.Internal
                 throw;
             }
         }
+
+        internal int FileHandle => _ringFd.DangerousGetHandle().ToInt32();
 
         /// <summary>
         /// Whether the kernel is polling for entries on the Submission Queue.
