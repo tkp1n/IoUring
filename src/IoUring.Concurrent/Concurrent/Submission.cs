@@ -20,7 +20,8 @@ namespace IoUring.Concurrent
         /// </summary>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -30,6 +31,7 @@ namespace IoUring.Concurrent
                 sqe->flags = (byte) options;
                 sqe->fd = -1;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -43,7 +45,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -57,6 +60,7 @@ namespace IoUring.Concurrent
                 sqe->len = (uint) count;
                 sqe->rw_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -70,7 +74,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -84,6 +89,7 @@ namespace IoUring.Concurrent
                 sqe->len = (uint) count;
                 sqe->rw_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -94,7 +100,8 @@ namespace IoUring.Concurrent
         /// <param name="fsyncOptions">Integrity options</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -105,6 +112,7 @@ namespace IoUring.Concurrent
                 sqe->fd = fd;
                 sqe->fsync_flags = (uint) fsyncOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -118,7 +126,8 @@ namespace IoUring.Concurrent
         /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -132,6 +141,7 @@ namespace IoUring.Concurrent
                 sqe->len = (uint) count;
                 sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->personality = personality;
             }
         }
 
@@ -145,7 +155,8 @@ namespace IoUring.Concurrent
         /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -159,6 +170,7 @@ namespace IoUring.Concurrent
                 sqe->len = (uint) count;
                 sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->personality = personality;
             }
         }
 
@@ -169,7 +181,8 @@ namespace IoUring.Concurrent
         /// <param name="pollEvents">Events to poll for</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -180,6 +193,7 @@ namespace IoUring.Concurrent
                 sqe->fd = fd;
                 sqe->poll_events = pollEvents;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -189,7 +203,8 @@ namespace IoUring.Concurrent
         /// <param name="pollUserData">userData of the poll submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -200,6 +215,7 @@ namespace IoUring.Concurrent
                 sqe->fd = -1;
                 sqe->addr = pollUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -212,7 +228,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags for the operation (as per sync_file_range)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -225,6 +242,7 @@ namespace IoUring.Concurrent
                 sqe->len = (uint) count;
                 sqe->sync_range_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -236,7 +254,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags for the operation (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -249,6 +268,7 @@ namespace IoUring.Concurrent
                 sqe->len = 1;
                 sqe->msg_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -260,7 +280,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags for the operation (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -273,6 +294,7 @@ namespace IoUring.Concurrent
                 sqe->len = 1;
                 sqe->msg_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -284,7 +306,8 @@ namespace IoUring.Concurrent
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -298,6 +321,7 @@ namespace IoUring.Concurrent
                 sqe->len = 1;
                 sqe->timeout_flags = (uint) timeoutOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -307,7 +331,8 @@ namespace IoUring.Concurrent
         /// <param name="timeoutUserData">userData of the timeout submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -318,6 +343,7 @@ namespace IoUring.Concurrent
                 sqe->fd = -1;
                 sqe->addr = timeoutUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -330,7 +356,8 @@ namespace IoUring.Concurrent
         /// <param name="flags">Flags as per accept4</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -343,6 +370,7 @@ namespace IoUring.Concurrent
                 sqe->addr = (ulong) addr;
                 sqe->accept_flags = (uint) flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -352,7 +380,8 @@ namespace IoUring.Concurrent
         /// <param name="opUserData">userData of the operation to cancel</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -363,6 +392,7 @@ namespace IoUring.Concurrent
                 sqe->fd = -1;
                 sqe->addr = opUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -374,7 +404,8 @@ namespace IoUring.Concurrent
         /// <param name="addrLen">The length of the address</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -386,6 +417,7 @@ namespace IoUring.Concurrent
                 sqe->off = addrLen;
                 sqe->addr = (ulong) addr;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 
@@ -396,7 +428,8 @@ namespace IoUring.Concurrent
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
-        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             var sqe = _sqe;
 
@@ -409,6 +442,7 @@ namespace IoUring.Concurrent
                 sqe->len = 1;
                 sqe->timeout_flags = (uint) timeoutOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
         }
 

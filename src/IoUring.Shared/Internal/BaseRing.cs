@@ -20,6 +20,8 @@ namespace IoUring.Internal
         private protected readonly CompletionQueue _cq;
         private readonly UnmapHandle _cqHandle;
 
+        private readonly bool[] _supportedOperations;
+
         private static int Setup(uint entries, io_uring_params* p, RingOptions? options)
         {
             options?.WriteTo(p, entries);
@@ -118,6 +120,7 @@ namespace IoUring.Internal
             {
                 _sq = MapSq(fd, sqSize, &p, SubmissionPollingEnabled, IoPollingEnabled, out _sqHandle, out _sqeHandle);
                 _cq = MapCq(fd, cqSize, &p, _sqHandle, IoPollingEnabled, out _cqHandle);
+                _supportedOperations = FetchSupportedOperations(fd);
             }
             catch (ErrnoException)
             {
@@ -128,6 +131,11 @@ namespace IoUring.Internal
         }
 
         internal int FileHandle => _ringFd.DangerousGetHandle().ToInt32();
+
+        /// <summary>
+        /// Returns whether the kernel supports io_uring
+        /// </summary>
+        public static bool IsSupported => KernelVersion.Supports.IoUring;
 
         /// <summary>
         /// Whether the kernel is polling for entries on the Submission Queue.
@@ -143,17 +151,6 @@ namespace IoUring.Internal
         /// Whether the kernel to polls for I/O completions (instead of using interrupt driven I/O).
         /// </summary>
         public bool IoPollingEnabled => (_flags & IORING_SETUP_IOPOLL) != 0;
-
-        /// <summary>
-        /// Whether protection against Completion Queue overflow is supported by the kernel.
-        /// </summary>
-        public bool SupportsNoDrop => (_features & IORING_FEAT_NODROP) != 0;
-
-        /// <summary>
-        /// Whether the application can be certain, that any data needed for async offload has been consumed by the
-        /// kernel, when the Submission Queue Entry is consumed.
-        /// </summary>
-        public bool SupportsStableSubmits => (_features & IORING_FEAT_SUBMIT_STABLE) != 0;
 
         /// <summary>
         /// Returns the maximum number of events the Submission Queue can contain

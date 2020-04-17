@@ -52,6 +52,6 @@ namespace IoUring
         /// issued async from the start.
         /// </summary>
         /// <remarks>Available since 5.6</remarks>
-        Async = 1 << 4, // IOSQE_IO_ASYNC
+        Async = 1 << 4, // IOSQE_ASYNC
     }
 }

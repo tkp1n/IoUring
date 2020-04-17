@@ -13,10 +13,11 @@ namespace IoUring
         /// </summary>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareNop(userData, options))
+            if (!TryPrepareNop(userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -28,8 +29,9 @@ namespace IoUring
         /// </summary>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -40,6 +42,7 @@ namespace IoUring
                 sqe->flags = (byte) options;
                 sqe->fd = -1;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -56,10 +59,11 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareReadV(fd, iov, count, offset, flags, userData, options))
+            if (!TryPrepareReadV(fd, iov, count, offset, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -76,8 +80,9 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -92,6 +97,7 @@ namespace IoUring
                 sqe->len = (uint) count;
                 sqe->rw_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -108,10 +114,11 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareWriteV(fd, iov, count, offset, flags, userData, options))
+            if (!TryPrepareWriteV(fd, iov, count, offset, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -128,8 +135,9 @@ namespace IoUring
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -144,6 +152,7 @@ namespace IoUring
                 sqe->len = (uint) count;
                 sqe->rw_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -157,10 +166,11 @@ namespace IoUring
         /// <param name="fsyncOptions">Integrity options</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareFsync(fd, fsyncOptions, userData, options))
+            if (!TryPrepareFsync(fd, fsyncOptions, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -174,8 +184,9 @@ namespace IoUring
         /// <param name="fsyncOptions">Integrity options</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -187,6 +198,7 @@ namespace IoUring
                 sqe->fd = fd;
                 sqe->fsync_flags = (uint) fsyncOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -203,10 +215,11 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareReadFixed(fd, buf, count, index, offset, userData, options))
+            if (!TryPrepareReadFixed(fd, buf, count, index, offset, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -223,8 +236,9 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -239,6 +253,7 @@ namespace IoUring
                 sqe->len = (uint) count;
                 sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->personality = personality;
             }
 
             return true;
@@ -255,10 +270,11 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareWriteFixed(fd, buf, count, index, offset, userData, options))
+            if (!TryPrepareWriteFixed(fd, buf, count, index, offset, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -275,8 +291,9 @@ namespace IoUring
         /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -291,6 +308,7 @@ namespace IoUring
                 sqe->len = (uint) count;
                 sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->personality = personality;
             }
 
             return true;
@@ -304,10 +322,11 @@ namespace IoUring
         /// <param name="pollEvents">Events to poll for</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPreparePollAdd(fd, pollEvents, userData, options))
+            if (!TryPreparePollAdd(fd, pollEvents, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -321,8 +340,9 @@ namespace IoUring
         /// <param name="pollEvents">Events to poll for</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -334,6 +354,7 @@ namespace IoUring
                 sqe->fd = fd;
                 sqe->poll_events = pollEvents;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -346,10 +367,11 @@ namespace IoUring
         /// <param name="pollUserData">userData of the poll submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPreparePollRemove(pollUserData, userData, options))
+            if (!TryPreparePollRemove(pollUserData, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -362,8 +384,9 @@ namespace IoUring
         /// <param name="pollUserData">userData of the poll submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -375,6 +398,7 @@ namespace IoUring
                 sqe->fd = -1;
                 sqe->addr = pollUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -390,10 +414,11 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per sync_file_range)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareSyncFileRange(fd, offset, count, flags, userData, options))
+            if (!TryPrepareSyncFileRange(fd, offset, count, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -409,8 +434,9 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per sync_file_range)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -424,6 +450,7 @@ namespace IoUring
                 sqe->len = (uint) count;
                 sqe->sync_range_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -438,10 +465,11 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareSendMsg(fd, msg, flags, userData, options))
+            if (!TryPrepareSendMsg(fd, msg, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -456,8 +484,9 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per sendmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -471,6 +500,7 @@ namespace IoUring
                 sqe->len = 1;
                 sqe->msg_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -485,10 +515,11 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareRecvMsg(fd, msg, flags, userData, options))
+            if (!TryPrepareRecvMsg(fd, msg, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -503,8 +534,9 @@ namespace IoUring
         /// <param name="flags">Flags for the operation (as per recvmsg)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -518,6 +550,7 @@ namespace IoUring
                 sqe->len = 1;
                 sqe->msg_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -532,10 +565,11 @@ namespace IoUring
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareTimeout(ts, count, timeoutOptions, userData, options))
+            if (!TryPrepareTimeout(ts, count, timeoutOptions, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -550,8 +584,9 @@ namespace IoUring
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -566,6 +601,7 @@ namespace IoUring
                 sqe->len = 1;
                 sqe->timeout_flags = (uint) timeoutOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -578,10 +614,11 @@ namespace IoUring
         /// <param name="timeoutUserData">userData of the timeout submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareTimeoutRemove(timeoutUserData, userData, options))
+            if (!TryPrepareTimeoutRemove(timeoutUserData, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -594,8 +631,9 @@ namespace IoUring
         /// <param name="timeoutUserData">userData of the timeout submission that should be removed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -607,6 +645,7 @@ namespace IoUring
                 sqe->fd = -1;
                 sqe->addr = timeoutUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -622,10 +661,11 @@ namespace IoUring
         /// <param name="flags">Flags as per accept4</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareAccept(fd, addr, addrLen, flags, userData, options))
+            if (!TryPrepareAccept(fd, addr, addrLen, flags, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -641,8 +681,9 @@ namespace IoUring
         /// <param name="flags">Flags as per accept4</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -656,6 +697,7 @@ namespace IoUring
                 sqe->addr = (ulong) addr;
                 sqe->accept_flags = (uint) flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -668,10 +710,11 @@ namespace IoUring
         /// <param name="opUserData">userData of the operation to cancel</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareCancel(opUserData, userData, options))
+            if (!TryPrepareCancel(opUserData, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -684,8 +727,9 @@ namespace IoUring
         /// <param name="opUserData">userData of the operation to cancel</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -697,6 +741,7 @@ namespace IoUring
                 sqe->fd = -1;
                 sqe->addr = opUserData;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -711,10 +756,11 @@ namespace IoUring
         /// <param name="addrLen">The length of the address</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareConnect(fd, addr, addrLen, userData, options))
+            if (!TryPrepareConnect(fd, addr, addrLen, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -729,8 +775,9 @@ namespace IoUring
         /// <param name="addrLen">The length of the address</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -743,6 +790,7 @@ namespace IoUring
                 sqe->off = addrLen;
                 sqe->addr = (ulong) addr;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
@@ -756,10 +804,11 @@ namespace IoUring
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
-        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareLinkTimeout(ts, timeoutOptions, userData, options))
+            if (!TryPrepareLinkTimeout(ts, timeoutOptions, userData, options, personality))
             {
                 ThrowSubmissionQueueFullException();
             }
@@ -773,8 +822,9 @@ namespace IoUring
         /// <param name="timeoutOptions">Options on how <paramref name="ts"/> is interpreted</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
-        public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None)
+        public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
             if (!NextSubmissionQueueEntry(out var sqe))
                 return false;
@@ -788,6 +838,7 @@ namespace IoUring
                 sqe->len = 1;
                 sqe->timeout_flags = (uint) timeoutOptions;
                 sqe->user_data = userData;
+                sqe->personality = personality;
             }
 
             return true;
