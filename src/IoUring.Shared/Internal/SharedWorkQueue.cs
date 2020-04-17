@@ -9,8 +9,13 @@ namespace IoUring.Internal
 
         public SharedWorkQueue()
         {
-            if (!KernelVersion.Supports.IORING_SETUP_ATTACH_WQ) ThrowPlatformNotSupportedException();
+            if (!IsSupported) ThrowPlatformNotSupportedException();
         }
+
+        /// <summary>
+        /// Returns whether shared work-queues are supported by the kernel
+        /// </summary>
+        public static bool IsSupported => KernelVersion.Supports.IORING_SETUP_ATTACH_WQ;
 
         public T Create(int entries, RingOptions options, Func<int, RingOptions, T> activator)
         {

@@ -65,12 +65,14 @@ namespace IoUring.Internal
         internal enum ExceptionArgument
         {
             entries,
+            id,
             iovcnt,
             major,
             minor,
             nrFiles,
             obj,
-            options
+            options,
+            value
         }
     }
 }

@@ -12,7 +12,7 @@ namespace IoUring.CodeGenerator
         public string Name { get; set; }
         public string Comment { get; set; }
         public bool Unsafe { get; set; }
-        public List<Parameter> Parameters { get; } = new List<Parameter>(); 
+        public List<Parameter> Parameters { get; } = new List<Parameter>();
         public Dictionary<string, string> Mapping = new Dictionary<string, string>();
     }
 
@@ -29,9 +29,9 @@ namespace IoUring.CodeGenerator
         static void Main(string[] args)
         {
             var functions = Parse("io_uring.xml");
-            // Console.WriteLine(CreateRingFunctions(functions));
+            Console.WriteLine(CreateRingFunctions(functions));
             // Console.WriteLine(CreateSubmissionFunctions(functions));
-            Console.WriteLine(CreateConcurrentRingFunctions(functions));
+            // Console.WriteLine(CreateConcurrentRingFunctions(functions));
         }
 
         static List<Function> Parse(string uri)
@@ -75,6 +75,18 @@ namespace IoUring.CodeGenerator
                 }
             }
 
+            foreach (var f in functions) {
+                f.Parameters.Add(new Parameter
+                {
+                    Type = "ushort",
+                    Name = "personality",
+                    Default = "0",
+                    Comment = "The personality to impersonate for this submission"
+                });
+
+                f.Mapping.Add("personality", "personality");
+            }
+
             return functions;
         }
 
@@ -84,7 +96,7 @@ namespace IoUring.CodeGenerator
             foreach (var function in functions)
             {
                 // PrepareXXX
-                
+
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Adds {function.Comment} to the Submission Queue without it being submitted.");
                 sb.AppendLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
@@ -116,7 +128,7 @@ namespace IoUring.CodeGenerator
                 sb.AppendLine( "            }");
                 sb.AppendLine( "        }");
                 sb.AppendLine();
-                
+
                 // TryPrepareXXX
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
@@ -142,7 +154,7 @@ namespace IoUring.CodeGenerator
                 {
                     sb.AppendLine($"                sqe->{mapping.Key} = {mapping.Value};");
                 }
-                
+
                 sb.AppendLine( "            }");
                 sb.AppendLine();
                 sb.AppendLine( "            return true;");
@@ -188,9 +200,9 @@ namespace IoUring.CodeGenerator
                 {
                     sb.AppendLine($"                sqe->{mapping.Key} = {mapping.Value};");
                 }
-                
+
                 sb.AppendLine( "            }");
-                sb.AppendLine("        }");
+                sb.AppendLine( "        }");
                 sb.AppendLine();
             }
 
@@ -203,7 +215,7 @@ namespace IoUring.CodeGenerator
             foreach (var function in functions)
             {
                 // PrepareXXX
-                
+
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Adds {function.Comment} to the Submission Queue.");
                 sb.AppendLine("        /// </summary>");
@@ -241,7 +253,7 @@ namespace IoUring.CodeGenerator
                 sb.AppendLine( "            }");
                 sb.AppendLine( "        }");
                 sb.AppendLine();
-                
+
                 // TryPrepareXXX
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
