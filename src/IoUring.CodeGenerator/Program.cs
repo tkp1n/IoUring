@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
@@ -29,9 +29,10 @@ namespace IoUring.CodeGenerator
         static void Main(string[] args)
         {
             var functions = Parse("io_uring.xml");
-            Console.WriteLine(CreateRingFunctions(functions));
-            // Console.WriteLine(CreateSubmissionFunctions(functions));
-            // Console.WriteLine(CreateConcurrentRingFunctions(functions));
+            CreateRingFunctions(functions);
+            CreateRingOptionEnum(functions);
+            CreateSubmissionFunctions(functions);
+            CreateConcurrentRingFunctions(functions);
         }
 
         static List<Function> Parse(string uri)
@@ -90,25 +91,34 @@ namespace IoUring.CodeGenerator
             return functions;
         }
 
-        static string CreateRingFunctions(List<Function> functions)
+        static void CreateRingFunctions(List<Function> functions)
         {
-            StringBuilder sb = new StringBuilder();
+            using StreamWriter sw = new StreamWriter("../IoUring/Ring.Submission.Generated.cs", false);
+
+            sw.WriteLine("using Tmds.Linux;");
+            sw.WriteLine("using static Tmds.Linux.LibC;");
+            sw.WriteLine("using static IoUring.Internal.ThrowHelper;");
+            sw.WriteLine("");
+            sw.WriteLine("namespace IoUring");
+            sw.WriteLine("{");
+            sw.WriteLine("    public unsafe partial class Ring");
+            sw.WriteLine("    {");
             foreach (var function in functions)
             {
                 // PrepareXXX
 
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine($"        /// Adds {function.Comment} to the Submission Queue without it being submitted.");
-                sb.AppendLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
-                sb.AppendLine("        /// </summary>");
+                sw.WriteLine("        /// <summary>");
+                sw.WriteLine($"        /// Adds {function.Comment} to the Submission Queue without it being submitted.");
+                sw.WriteLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
+                sw.WriteLine("        /// </summary>");
                 foreach (var parameter in function.Parameters)
                 {
-                    sb.AppendLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
+                    sw.WriteLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
                 }
 
-                sb.AppendLine("        /// <exception cref=\"SubmissionQueueFullException\">If no more free space in the Submission Queue is available</exception>");
+                sw.WriteLine("        /// <exception cref=\"SubmissionQueueFullException\">If no more free space in the Submission Queue is available</exception>");
 
-                sb.Append($"        public void Prepare{function.Name}(");
+                sw.Write($"        public void Prepare{function.Name}(");
                 List<string> parameters = new List<string>();
                 foreach (var parameter in function.Parameters)
                 {
@@ -119,65 +129,91 @@ namespace IoUring.CodeGenerator
                     parameters.Add(pb.ToString());
                 }
 
-                sb.Append(string.Join(", ", parameters));
-                sb.AppendLine(")");
-                sb.AppendLine( "        {");
-                sb.AppendLine($"            if (!TryPrepare{function.Name}({string.Join(", ", function.Parameters.Select(p => p.Name))}))");
-                sb.AppendLine( "            {");
-                sb.AppendLine( "                ThrowSubmissionQueueFullException();");
-                sb.AppendLine( "            }");
-                sb.AppendLine( "        }");
-                sb.AppendLine();
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+                sw.WriteLine( "        {");
+                sw.WriteLine($"            if (!TryPrepare{function.Name}({string.Join(", ", function.Parameters.Select(p => p.Name))}))");
+                sw.WriteLine( "            {");
+                sw.WriteLine( "                ThrowSubmissionQueueFullException();");
+                sw.WriteLine( "            }");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
 
                 // TryPrepareXXX
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
-                sb.AppendLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
-                sb.AppendLine("        /// </summary>");
+                sw.WriteLine("        /// <summary>");
+                sw.WriteLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
+                sw.WriteLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
+                sw.WriteLine("        /// </summary>");
                 foreach (var parameter in function.Parameters)
                 {
-                    sb.AppendLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
+                    sw.WriteLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
                 }
 
-                sb.AppendLine("        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>");
-                sb.Append($"        public bool TryPrepare{function.Name}(");
-                sb.Append(string.Join(", ", parameters));
-                sb.AppendLine(")");
-                sb.AppendLine( "        {");
-                sb.AppendLine( "            if (!NextSubmissionQueueEntry(out var sqe))");
-                sb.AppendLine( "                return false;");
-                sb.AppendLine();
-                sb.AppendLine( "            unchecked");
-                sb.AppendLine( "            {");
+                sw.WriteLine("        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>");
+                sw.Write($"        public bool TryPrepare{function.Name}(");
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+                sw.WriteLine( "        {");
+                sw.WriteLine( "            if (!NextSubmissionQueueEntry(out var sqe))");
+                sw.WriteLine( "                return false;");
+                sw.WriteLine();
+                sw.WriteLine( "            unchecked");
+                sw.WriteLine( "            {");
 
                 foreach (var mapping in function.Mapping)
                 {
-                    sb.AppendLine($"                sqe->{mapping.Key} = {mapping.Value};");
+                    sw.WriteLine($"                sqe->{mapping.Key} = {mapping.Value};");
                 }
 
-                sb.AppendLine( "            }");
-                sb.AppendLine();
-                sb.AppendLine( "            return true;");
-                sb.AppendLine( "        }");
-                sb.AppendLine();
+                sw.WriteLine( "            }");
+                sw.WriteLine();
+                sw.WriteLine( "            return true;");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
             }
 
-            return sb.ToString();
+            sw.WriteLine("    }");
+            sw.WriteLine("}");
         }
 
-        static string CreateSubmissionFunctions(List<Function> functions)
+        static void CreateRingOptionEnum(List<Function> functions)
         {
-            StringBuilder sb = new StringBuilder();
+            using StreamWriter sw = new StreamWriter("../IoUring/RingOperation.Generated.cs", false);
+            sw.WriteLine("namespace IoUring");
+            sw.WriteLine("{");
+            sw.WriteLine("    public enum RingOperation : byte");
+            sw.WriteLine("    {");
+
             foreach (var function in functions)
             {
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine($"        /// Prepares this Submission Queue Entry as {function.Comment}.");
-                sb.AppendLine("        /// </summary>");
+                sw.WriteLine($"        {function.Name},");
+            }
+
+            sw.WriteLine("    }");
+            sw.WriteLine("}");
+        }
+
+        static void CreateSubmissionFunctions(List<Function> functions)
+        {
+            using StreamWriter sw = new StreamWriter("../IoUring.Concurrent/Concurrent/Submission.Generated.cs", false);
+
+            sw.WriteLine("using Tmds.Linux;");
+            sw.WriteLine("using static Tmds.Linux.LibC;");
+            sw.WriteLine("");
+            sw.WriteLine("namespace IoUring.Concurrent");
+            sw.WriteLine("{");
+            sw.WriteLine("    public readonly unsafe partial struct Submission");
+            sw.WriteLine("    {");
+            foreach (var function in functions)
+            {
+                sw.WriteLine("        /// <summary>");
+                sw.WriteLine($"        /// Prepares this Submission Queue Entry as {function.Comment}.");
+                sw.WriteLine("        /// </summary>");
                 foreach (var parameter in function.Parameters)
                 {
-                    sb.AppendLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
+                    sw.WriteLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
                 }
-                sb.Append($"        public void Prepare{function.Name}(");
+                sw.Write($"        public void Prepare{function.Name}(");
                 List<string> parameters = new List<string>();
                 foreach (var parameter in function.Parameters)
                 {
@@ -188,45 +224,54 @@ namespace IoUring.CodeGenerator
                     parameters.Add(pb.ToString());
                 }
 
-                sb.Append(string.Join(", ", parameters));
-                sb.AppendLine(")");
-                sb.AppendLine( "        {");
-                sb.AppendLine("            var sqe = _sqe;");
-                sb.AppendLine();
-                sb.AppendLine( "            unchecked");
-                sb.AppendLine( "            {");
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+                sw.WriteLine( "        {");
+                sw.WriteLine("            var sqe = _sqe;");
+                sw.WriteLine();
+                sw.WriteLine( "            unchecked");
+                sw.WriteLine( "            {");
 
                 foreach (var mapping in function.Mapping)
                 {
-                    sb.AppendLine($"                sqe->{mapping.Key} = {mapping.Value};");
+                    sw.WriteLine($"                sqe->{mapping.Key} = {mapping.Value};");
                 }
 
-                sb.AppendLine( "            }");
-                sb.AppendLine( "        }");
-                sb.AppendLine();
+                sw.WriteLine( "            }");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
             }
 
-            return sb.ToString();
+            sw.WriteLine("    }");
+            sw.WriteLine("}");
         }
 
-        static string CreateConcurrentRingFunctions(List<Function> functions)
+        static void CreateConcurrentRingFunctions(List<Function> functions)
         {
-            StringBuilder sb = new StringBuilder();
+            using StreamWriter sw = new StreamWriter("../IoUring.Concurrent/Concurrent/ConcurrentRing.Generated.cs", false);
+            sw.WriteLine("using IoUring.Internal;");
+            sw.WriteLine("using Tmds.Linux;");
+            sw.WriteLine("using static IoUring.Internal.ThrowHelper;");
+            sw.WriteLine("");
+            sw.WriteLine("namespace IoUring.Concurrent");
+            sw.WriteLine("{");
+            sw.WriteLine("    public sealed unsafe partial class ConcurrentRing : BaseRing");
+            sw.WriteLine("    {");
             foreach (var function in functions)
             {
                 // PrepareXXX
 
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine($"        /// Adds {function.Comment} to the Submission Queue.");
-                sb.AppendLine("        /// </summary>");
+                sw.WriteLine("        /// <summary>");
+                sw.WriteLine($"        /// Adds {function.Comment} to the Submission Queue.");
+                sw.WriteLine("        /// </summary>");
                 foreach (var parameter in function.Parameters)
                 {
-                    sb.AppendLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
+                    sw.WriteLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
                 }
 
-                sb.AppendLine("        /// <exception cref=\"SubmissionQueueFullException\">If no more free space in the Submission Queue is available</exception>");
+                sw.WriteLine("        /// <exception cref=\"SubmissionQueueFullException\">If no more free space in the Submission Queue is available</exception>");
 
-                sb.Append($"        public void Prepare{function.Name}(");
+                sw.Write($"        public void Prepare{function.Name}(");
                 List<string> parameters = new List<string>();
                 foreach (var parameter in function.Parameters)
                 {
@@ -244,34 +289,34 @@ namespace IoUring.CodeGenerator
                     }
                 }
 
-                sb.Append(string.Join(", ", parameters));
-                sb.AppendLine(")");
-                sb.AppendLine( "        {");
-                sb.AppendLine($"            if (!TryPrepare{function.Name}({string.Join(", ", function.Parameters.Select(p => p.Name))}))");
-                sb.AppendLine( "            {");
-                sb.AppendLine( "                ThrowSubmissionQueueFullException();");
-                sb.AppendLine( "            }");
-                sb.AppendLine( "        }");
-                sb.AppendLine();
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+                sw.WriteLine( "        {");
+                sw.WriteLine($"            if (!TryPrepare{function.Name}({string.Join(", ", function.Parameters.Select(p => p.Name))}))");
+                sw.WriteLine( "            {");
+                sw.WriteLine( "                ThrowSubmissionQueueFullException();");
+                sw.WriteLine( "            }");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
 
                 // TryPrepareXXX
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
-                sb.AppendLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
-                sb.AppendLine("        /// </summary>");
+                sw.WriteLine("        /// <summary>");
+                sw.WriteLine($"        /// Attempts to add {function.Comment} to the Submission Queue without it being submitted.");
+                sw.WriteLine("        /// The actual submission can be deferred to avoid unnecessary memory barriers.");
+                sw.WriteLine("        /// </summary>");
                 foreach (var parameter in function.Parameters)
                 {
-                    sb.AppendLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
+                    sw.WriteLine($"        /// <param name=\"{parameter.Name}\">{parameter.Comment}</param>");
                 }
 
-                sb.AppendLine("        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>");
-                sb.Append($"        public bool TryPrepare{function.Name}(");
-                sb.Append(string.Join(", ", parameters));
-                sb.AppendLine(")");
-                sb.AppendLine( "        {");
-                sb.AppendLine( "            if (!TryAcquireSubmission(out var submission))");
-                sb.AppendLine( "                return false;");
-                sb.AppendLine();
+                sw.WriteLine("        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>");
+                sw.Write($"        public bool TryPrepare{function.Name}(");
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+                sw.WriteLine( "        {");
+                sw.WriteLine( "            if (!TryAcquireSubmission(out var submission))");
+                sw.WriteLine( "                return false;");
+                sw.WriteLine();
                 List<string> args = new List<string>();
                 foreach (var parameter in function.Parameters)
                 {
@@ -284,15 +329,16 @@ namespace IoUring.CodeGenerator
                         args.Add(parameter.Name);
                     }
                 }
-                sb.AppendLine($"            submission.Prepare{function.Name}({string.Join(", ", args)});");
-                sb.AppendLine();
-                sb.AppendLine( "            Release(submission);");
-                sb.AppendLine( "            return true;");
-                sb.AppendLine( "        }");
-                sb.AppendLine();
+                sw.WriteLine($"            submission.Prepare{function.Name}({string.Join(", ", args)});");
+                sw.WriteLine();
+                sw.WriteLine( "            Release(submission);");
+                sw.WriteLine( "            return true;");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
             }
 
-            return sb.ToString();
+            sw.WriteLine("    }");
+            sw.WriteLine("}");
         }
     }
 }

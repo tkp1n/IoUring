@@ -126,7 +126,7 @@
         <Parameters>
             <Parameter type="ulong" name="timeoutUserData" comment="userData of the timeout submission that should be removed"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
-            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />            
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
         <MapToFields opcode="IORING_OP_TIMEOUT_REMOVE" flags="(byte) options" fd="-1" addr="timeoutUserData" user_data="userData"/>
     </Function>
@@ -149,16 +149,6 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_ASYNC_CANCEL" flags="(byte) options" fd="-1" addr="opUserData" user_data="userData"/>
     </Function>
-    <Function name="Connect" comment="a connect">
-        <Parameters>
-            <Parameter type="int" name="fd" comment="The socket to connect on"/>
-            <Parameter type="sockaddr*" name="addr" comment="The address to connect to"/>
-            <Parameter type="socklen_t" name="addrLen" comment="The length of the address"/>
-            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
-            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />            
-        </Parameters>
-        <MapToFields opcode="IORING_OP_CONNECT" flags="(byte) options" fd="fd" off="addrLen" addr="(ulong) addr" user_data="userData"/>
-    </Function>
     <Function name="LinkTimeout" comment="a timeout to a previously prepared linked item">
         <Parameters>
             <Parameter type="timespec*" name="ts" comment="The amount of time after which the timeout should trigger"/>
@@ -167,5 +157,153 @@
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
         <MapToFields opcode="IORING_OP_LINK_TIMEOUT" flags="(byte) options" fd="-1" addr="(ulong) ts" len="1" timeout_flags="(uint) timeoutOptions" user_data="userData"/>
+    </Function>
+    <Function name="Connect" comment="a connect">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="The socket to connect on"/>
+            <Parameter type="sockaddr*" name="addr" comment="The address to connect to"/>
+            <Parameter type="socklen_t" name="addrLen" comment="The length of the address"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_CONNECT" flags="(byte) options" fd="fd" off="addrLen" addr="(ulong) addr" user_data="userData"/>
+    </Function>
+    <Function name="Fallocate" comment="a fallocate">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="The file to manipulate the allocated disk space for"/>
+            <Parameter type="int" name="mode" comment="The operation to be performed"/>
+            <Parameter type="off_t" name="offset" comment="Offset in bytes into the file"/>
+            <Parameter type="off_t" name="len" comment="Number of bytes to operate on"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_FALLOCATE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) (long) len" len="(uint) mode" user_data="userData"/>
+    </Function>
+    <Function name="OpenAt" comment="a closeat">
+        <Parameters>
+            <Parameter type="int" name="dfd" comment="Directory file descriptor"/>
+            <Parameter type="byte*" name="path" comment="Path to be opened"/>
+            <Parameter type="int" name="flags" comment="Flags for the open operation (e.g. access mode)"/>
+            <Parameter type="mode_t" name="mode" default="default" comment="File mode bits"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_OPENAT" flags="(byte) options" fd="dfd" addr="(ulong) path" len="(uint) mode" open_flags="flags" user_data="userData"/>
+    </Function>
+    <Function name="Close" comment="a close">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="File descriptor to close"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_CLOSE" flags="(byte) options" fd="fd" user_data="userData"/>
+    </Function>
+    <Function name="FilesUpdate" comment="an update to the registered files">
+        <Parameters>
+            <Parameter type="int*" name="fds" comment="File descriptors to add / -1 to remove"/>
+            <Parameter type="int" name="nrFds" comment="Number of changing file descriptors"/>
+            <Parameter type="int" name="offset" comment="Offset into the previously registered files"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_CLOSE" flags="(byte) options" fd="-1" off="(ulong) (long) offset" addr="(ulong) fds" len="(uint) nrFds" user_data="userData"/>
+    </Function>
+    <Function name="Statx" comment="a statx">
+        <Parameters>
+            <Parameter type="int" name="dfd" comment="Directory file descriptor for relative paths"/>
+            <Parameter type="byte*" name="path" comment="Absolute or relative path"/>
+            <Parameter type="int" name="flags" comment="Influence pathname-based lookup"/>
+            <Parameter type="uint" name="mask" comment="Identifies the required fields"/>
+            <Parameter type="statx*" name="statxbuf" comment="Buffer for the required information"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_STATX" flags="(byte) options" fd="dfd" off="(ulong) statxbuf" addr="(ulong) path" len="mask" statx_flags="flags" user_data="userData"/>
+    </Function>
+    <Function name="Read" comment="a read">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="File descriptor"/>
+            <Parameter type="void*" name="buf" comment="Buffer to read to"/>
+            <Parameter type="uint" name="nbytes" comment="Number of bytes to read"/>
+            <Parameter type="off_t" name="offset" comment="File offset to read at"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_READ" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) buf" len="nbytes" user_data="userData"/>
+    </Function>
+    <Function name="Write" comment="a write">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="File descriptor"/>
+            <Parameter type="void*" name="buf" comment="Buffer to write"/>
+            <Parameter type="uint" name="nbytes" comment="Number of bytes to write"/>
+            <Parameter type="off_t" name="offset" comment="File offset to write at"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_WRITE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) buf" len="nbytes" user_data="userData"/>
+    </Function>
+    <Function name="Fadvise" comment="a posix_fadvise">
+        <Parameters>
+            <Parameter type="int" name="fd" comment="File descriptor"/>
+            <Parameter type="off_t" name="offset" comment="Offset into the file"/>
+            <Parameter type="off_t" name="len" comment="Length of the file range"/>
+            <Parameter type="int" name="advice" comment="Advice for the file range"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_FADVISE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" len="(uint) len" fadvise_advice="advice" user_data="userData"/>
+    </Function>
+    <Function name="Madvise" comment="an madvise">
+        <Parameters>
+            <Parameter type="void*" name="addr" comment="Start of address range"/>
+            <Parameter type="off_t" name="len" comment="Length of address range"/>
+            <Parameter type="int" name="advice" comment="Advice for address range"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_MADVISE" flags="(byte) options" fd="-1" len="(uint) len" fadvise_advice="advice" user_data="userData"/>
+    </Function>
+    <Function name="Send" comment="a send">
+        <Parameters>
+            <Parameter type="int" name="sockfd" comment="Socket file descriptor"/>
+            <Parameter type="void*" name="buf" comment="Buffer to send"/>
+            <Parameter type="size_t" name="len" comment="Length of buffer to send"/>
+            <Parameter type="int" name="flags" comment="Flags for the send"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_SEND" flags="(byte) options" fd="sockfd" addr="(ulong) buf" len="(uint) len" msg_flags="(uint) flags" user_data="userData"/>
+    </Function>
+    <Function name="Recv" comment="a recv">
+        <Parameters>
+            <Parameter type="int" name="sockfd" comment="Socket file descriptor"/>
+            <Parameter type="void*" name="buf" comment="Buffer to read to"/>
+            <Parameter type="size_t" name="len" comment="Length of buffer to read to"/>
+            <Parameter type="int" name="flags" comment="Flags for the recv"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_RECV" flags="(byte) options" fd="sockfd" addr="(ulong) buf" len="(uint) len" msg_flags="(uint) flags" user_data="userData"/>
+    </Function>
+    <Function name="OpenAt2" comment="an openat2">
+        <Parameters>
+            <Parameter type="int" name="dfd" comment="Directory file descriptor"/>
+            <Parameter type="byte*" name="path" comment="Path to be opened"/>
+            <Parameter type="open_how*" name="how" comment="How pat should be opened"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_OPENAT2" flags="(byte) options" fd="dfd" offset="(ulong) how" addr="(ulong) path" len="SizeOf.open_how" user_data="userData"/>
+    </Function>
+    <Function name="EpollCtl" comments="an epoll_ctl">
+        <Parameters>
+            <Parameter type="int" name="epfd" comment="epoll instance file descriptor"/>
+            <Parameter type="int" name="fd" comment="File descriptor"/>
+            <Parameter type="int" name="op" comment="Operation to be performed for the file descriptor"/>
+            <Parameter type="epoll_event*" name="ev" comment="Settings"/>
+            <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+            <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+        </Parameters>
+        <MapToFields opcode="IORING_OP_EPOLL_CTL" flags="(byte) options" fd="epfd" offset="(ulong) fd" addr="(ulong) ev" len="(uint) op" user_data="userData"/>
     </Function>
 </IoUring>

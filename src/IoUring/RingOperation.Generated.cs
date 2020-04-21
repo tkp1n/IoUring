@@ -31,6 +31,6 @@ namespace IoUring
         Send,
         Recv,
         OpenAt2,
-        EpollCtl
+        EpollCtl,
     }
 }
