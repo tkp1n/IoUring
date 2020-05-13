@@ -42,7 +42,7 @@ namespace IoUring.Internal
             KernelVersion.Supports.IORING_OP_EPOLL_CTL,
         };
 
-        private static unsafe bool[] FetchSupportedOperations(int ringFd)
+        private static bool[] FetchSupportedOperations(int ringFd)
         {
             if (!KernelVersion.Supports.IORING_REGISTER_PROBE) return SupportedOperationsByKernelVersion;
 
