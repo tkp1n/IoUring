@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using IoUring.Concurrent;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
@@ -55,7 +54,7 @@ namespace IoUring.Internal
 
         private object Gate => this;
 
-        public bool NextSubmissionQueueEntry(out Submission submission)
+        public bool NextSubmissionQueueEntry(out IoUring.Concurrent.Submission submission)
         {
             uint head;
             uint tailInternal;
@@ -88,11 +87,11 @@ namespace IoUring.Internal
 
             Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
 
-            submission = new Submission(sqeInternal, idx);
+            submission = new IoUring.Concurrent.Submission(sqeInternal, idx);
             return true;
         }
 
-        public bool NextSubmissionQueueEntries(Span<Submission> submissions)
+        public bool NextSubmissionQueueEntries(Span<IoUring.Concurrent.Submission> submissions)
         {
             uint head;
             uint tailInternal;
@@ -128,7 +127,7 @@ namespace IoUring.Internal
 
                 Debug.Assert(Interlocked.CompareExchange(ref _states[idx], ReservedForPrep, ReadyForPrep) == ReadyForPrep);
 
-                submissions[i] = new Submission(sqeInternal, idx);
+                submissions[i] = new IoUring.Concurrent.Submission(sqeInternal, idx);
             }
 
             return true;

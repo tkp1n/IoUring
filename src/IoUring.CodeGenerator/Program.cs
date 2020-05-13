@@ -31,7 +31,8 @@ namespace IoUring.CodeGenerator
             var functions = Parse("io_uring.xml");
             CreateRingFunctions(functions);
             CreateRingOptionEnum(functions);
-            CreateSubmissionFunctions(functions);
+            CreateSubmissionFunctions(functions, false);
+            CreateSubmissionFunctions(functions, true);
             CreateConcurrentRingFunctions(functions);
         }
 
@@ -193,14 +194,25 @@ namespace IoUring.CodeGenerator
             sw.WriteLine("}");
         }
 
-        static void CreateSubmissionFunctions(List<Function> functions)
+        static void CreateSubmissionFunctions(List<Function> functions, bool concurrent)
         {
-            using StreamWriter sw = new StreamWriter("../IoUring.Concurrent/Concurrent/Submission.Generated.cs", false);
+            var path = concurrent
+                ? "../IoUring.Concurrent/Concurrent/Submission.Generated.cs"
+                : "../IoUring/Submission.Generated.cs";
+
+            using StreamWriter sw = new StreamWriter(path, false);
 
             sw.WriteLine("using Tmds.Linux;");
             sw.WriteLine("using static Tmds.Linux.LibC;");
             sw.WriteLine("");
-            sw.WriteLine("namespace IoUring.Concurrent");
+            if (concurrent)
+            {
+                sw.WriteLine("namespace IoUring.Concurrent");
+            }
+            else
+            {
+                sw.WriteLine("namespace IoUring");
+            }
             sw.WriteLine("{");
             sw.WriteLine("    public readonly unsafe partial struct Submission");
             sw.WriteLine("    {");

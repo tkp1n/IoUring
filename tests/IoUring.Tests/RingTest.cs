@@ -248,6 +248,28 @@ namespace IoUring.Tests
                 Assert.Equal(3 + i, c.userData);
             }
         }
+
+        [Fact]
+        public void UnsafeGetSubmissionReservesSqe()
+        {
+            using var ring = new Ring(8);
+
+            Assert.True(ring.TryGetSubmissionQueueEntryUnsafe(out var reservedSqe));
+
+            Assert.True(ring.TryPrepareNop(userData: 2));
+            reservedSqe.PrepareNop(userData: 1);
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, ring.SubmitAndWait(2, out var submitted));
+            Assert.Equal(2u, submitted);
+
+            Assert.True(ring.TryRead(out var completion));
+            Assert.Equal(0, completion.result);
+            Assert.Equal(1u, completion.userData);
+
+            Assert.True(ring.TryRead(out completion));
+            Assert.Equal(0, completion.result);
+            Assert.Equal(2u, completion.userData);
+        }
     }
 }
 

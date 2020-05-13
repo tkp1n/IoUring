@@ -5,6 +5,18 @@ namespace IoUring
 {
     public unsafe partial class Ring
     {
+        public bool TryGetSubmissionQueueEntryUnsafe(out Submission submission)
+        {
+            if (!NextSubmissionQueueEntry(out var sqe))
+            {
+                submission = default;
+                return false;
+            }
+
+            submission = new Submission(sqe);
+            return true;
+        }
+
         // Visible for testing
         internal bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
