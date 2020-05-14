@@ -44,8 +44,6 @@ namespace IoUring.Internal
 
         private static bool[] FetchSupportedOperations(int ringFd)
         {
-            if (!KernelVersion.Supports.IORING_REGISTER_PROBE) return SupportedOperationsByKernelVersion;
-
             const int maxOps = 256; // The op code is a byte therefore we cannot see more than 256 ops
             int len = SizeOf.io_uring_probe + (maxOps * SizeOf.io_uring_probe_op);
 
@@ -55,7 +53,16 @@ namespace IoUring.Internal
                 Unsafe.InitBlockUnaligned((byte*) probe, 0, (uint) len);
 
                 int ret = io_uring_register(ringFd, IORING_REGISTER_PROBE, probe, maxOps);
-                if (ret < 0) ThrowErrnoException();
+                if (ret < 0)
+                {
+                    if (errno == EINVAL)
+                    {
+                        // IORING_REGISTER_PROBE is not supported by this kernel. Return best guess based on kernel version.
+                        return SupportedOperationsByKernelVersion;
+                    }
+
+                    ThrowErrnoException();
+                }
 
                 var ops = io_uring_probe.ops(probe);
                 bool[] result = new bool[Math.Max(probe->last_op + 1, SupportedOperationsByKernelVersion.Length)];
