@@ -269,6 +269,52 @@ namespace IoUring.Tests
             Assert.True(ring.TryRead(out completion));
             Assert.Equal(0, completion.result);
             Assert.Equal(2u, completion.userData);
+
+            Assert.False(ring.TryRead(out _));
+        }
+
+        [Fact]
+        public void SkipDoesNotSubmitToKernel()
+        {
+            using var ring = new Ring(8);
+
+            ReadWrite4Sqes(ring);
+
+            Assert.True(ring.TryGetSubmissionQueueEntryUnsafe(out var reservedSqe));
+
+            Assert.True(ring.TryPrepareNop(userData: 2));
+            reservedSqe.PrepareNop(userData: 1);
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, ring.SubmitAndWait(1, 1, out var submitted));
+            Assert.Equal(1u, submitted);
+
+            Assert.True(ring.TryRead(out var completion));
+            Assert.Equal(0, completion.result);
+            Assert.Equal(2u, completion.userData);
+
+            Assert.False(ring.TryRead(out _));
+
+            ReadWrite4Sqes(ring);
+        }
+
+        private void ReadWrite4Sqes(Ring ring)
+        {
+            for (uint i = 1; i <= 4; i++)
+            {
+                Assert.True(ring.TryPrepareNop(userData: i));
+            }
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, ring.SubmitAndWait(4, out var submitted));
+            Assert.Equal(4u, submitted);
+
+            for (uint i = 1; i <= 4; i++)
+            {
+                Assert.True(ring.TryRead(out var completion));
+                Assert.Equal(0, completion.result);
+                Assert.Equal(i, completion.userData);
+            }
+
+            Assert.False(ring.TryRead(out _));
         }
     }
 }

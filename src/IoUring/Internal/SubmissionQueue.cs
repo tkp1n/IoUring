@@ -78,16 +78,17 @@ namespace IoUring.Internal
         /// <summary>
         /// Make prepared Submission Queue Entries visible to the kernel.
         /// </summary>
+        /// <param name="skip">Number of first Submission Queue Entries to skip</param>
         /// <returns>
         /// The number Submission Queue Entries that can be submitted.
         /// This may include Submission Queue Entries previously ignored by the kernel.</returns>
-        private uint Notify()
+        private uint Notify(uint skip)
         {
             uint tail = *_tail;
             uint head = *_head;
             uint pending = unchecked(tail - head);
             uint tailInternal = _tailInternal;
-            uint headInternal = _headInternal;
+            uint headInternal = _headInternal += skip;
             if (headInternal == tailInternal)
             {
                 return pending;
@@ -131,8 +132,11 @@ namespace IoUring.Internal
         private void CheckNoSubmissionsDropped() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
         public SubmitResult SubmitAndWait(int ringFd, uint minComplete, out uint operationsSubmitted)
+            => SubmitAndWait(ringFd, minComplete, 0, out operationsSubmitted);
+
+        public SubmitResult SubmitAndWait(int ringFd, uint minComplete, uint skip, out uint operationsSubmitted)
         {
-            uint toSubmit = Notify();
+            uint toSubmit = Notify(skip);
 
             if (!ShouldEnter(out uint enterFlags))
             {
