@@ -1,3 +1,4 @@
+using IoUring.Internal;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.ThrowHelper;
@@ -14,11 +15,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareNop(userData, options, personality))
+            var result = PrepareNopInternal(userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -32,8 +35,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareNop(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareNopInternal(userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareNopInternal(ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -44,7 +52,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -60,11 +68,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareReadV(fd, iov, count, offset, flags, userData, options, personality))
+            var result = PrepareReadVInternal(fd, iov, count, offset, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -83,8 +93,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareReadV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareReadVInternal(fd, iov, count, offset, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareReadVInternal(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -99,7 +114,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -115,11 +130,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareWriteV(fd, iov, count, offset, flags, userData, options, personality))
+            var result = PrepareWriteVInternal(fd, iov, count, offset, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -138,8 +155,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareWriteV(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareWriteVInternal(fd, iov, count, offset, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareWriteVInternal(int fd, iovec* iov, int count, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -154,7 +176,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -167,11 +189,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareFsync(fd, fsyncOptions, userData, options, personality))
+            var result = PrepareFsyncInternal(fd, fsyncOptions, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -187,8 +211,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareFsync(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareFsyncInternal(fd, fsyncOptions, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareFsyncInternal(int fd, FsyncOption fsyncOptions = FsyncOption.FileIntegrity, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -200,7 +229,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -216,11 +245,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareReadFixed(fd, buf, count, index, offset, userData, options, personality))
+            var result = PrepareReadFixedInternal(fd, buf, count, index, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -239,8 +270,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareReadFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareReadFixedInternal(fd, buf, count, index, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareReadFixedInternal(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -255,7 +291,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -271,11 +307,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareWriteFixed(fd, buf, count, index, offset, userData, options, personality))
+            var result = PrepareWriteFixedInternal(fd, buf, count, index, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -294,8 +332,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareWriteFixed(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareWriteFixedInternal(fd, buf, count, index, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareWriteFixedInternal(int fd, void* buf, size_t count, int index, off_t offset = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -310,7 +353,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -323,11 +366,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPreparePollAdd(fd, pollEvents, userData, options, personality))
+            var result = PreparePollAddInternal(fd, pollEvents, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -343,8 +388,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPreparePollAdd(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PreparePollAddInternal(fd, pollEvents, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PreparePollAddInternal(int fd, ushort pollEvents, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -356,7 +406,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -368,11 +418,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPreparePollRemove(pollUserData, userData, options, personality))
+            var result = PreparePollRemoveInternal(pollUserData, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -387,8 +439,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPreparePollRemove(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PreparePollRemoveInternal(pollUserData, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PreparePollRemoveInternal(ulong pollUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -400,7 +457,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -415,11 +472,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareSyncFileRange(fd, offset, count, flags, userData, options, personality))
+            var result = PrepareSyncFileRangeInternal(fd, offset, count, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -437,8 +496,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareSyncFileRange(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareSyncFileRangeInternal(fd, offset, count, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareSyncFileRangeInternal(int fd, off_t offset, off_t count, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -452,7 +516,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -466,11 +530,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareSendMsg(fd, msg, flags, userData, options, personality))
+            var result = PrepareSendMsgInternal(fd, msg, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -487,8 +553,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareSendMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareSendMsgInternal(fd, msg, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareSendMsgInternal(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -502,7 +573,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -516,11 +587,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareRecvMsg(fd, msg, flags, userData, options, personality))
+            var result = PrepareRecvMsgInternal(fd, msg, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -537,8 +610,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareRecvMsg(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareRecvMsgInternal(fd, msg, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareRecvMsgInternal(int fd, msghdr* msg, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -552,7 +630,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -566,11 +644,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareTimeout(ts, count, timeoutOptions, userData, options, personality))
+            var result = PrepareTimeoutInternal(ts, count, timeoutOptions, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -587,8 +667,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareTimeout(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareTimeoutInternal(ts, count, timeoutOptions, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareTimeoutInternal(timespec* ts, uint count = 1, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -603,7 +688,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -615,11 +700,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareTimeoutRemove(timeoutUserData, userData, options, personality))
+            var result = PrepareTimeoutRemoveInternal(timeoutUserData, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -634,8 +721,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareTimeoutRemove(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareTimeoutRemoveInternal(timeoutUserData, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareTimeoutRemoveInternal(ulong timeoutUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -647,7 +739,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -662,11 +754,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareAccept(fd, addr, addrLen, flags, userData, options, personality))
+            var result = PrepareAcceptInternal(fd, addr, addrLen, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -684,8 +778,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareAccept(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareAcceptInternal(fd, addr, addrLen, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareAcceptInternal(int fd, sockaddr* addr, socklen_t* addrLen, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -699,7 +798,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -711,11 +810,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareCancel(opUserData, userData, options, personality))
+            var result = PrepareCancelInternal(opUserData, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -730,8 +831,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareCancel(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareCancelInternal(opUserData, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareCancelInternal(ulong opUserData, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -743,7 +849,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -756,11 +862,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareLinkTimeout(ts, timeoutOptions, userData, options, personality))
+            var result = PrepareLinkTimeoutInternal(ts, timeoutOptions, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -776,8 +884,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareLinkTimeout(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareLinkTimeoutInternal(ts, timeoutOptions, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareLinkTimeoutInternal(timespec* ts, TimeoutOptions timeoutOptions = TimeoutOptions.Relative, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -791,7 +904,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -805,11 +918,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareConnect(fd, addr, addrLen, userData, options, personality))
+            var result = PrepareConnectInternal(fd, addr, addrLen, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -826,8 +941,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareConnect(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareConnectInternal(fd, addr, addrLen, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareConnectInternal(int fd, sockaddr* addr, socklen_t addrLen, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -840,7 +960,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -855,11 +975,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareFallocate(int fd, int mode, off_t offset, off_t len, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareFallocate(fd, mode, offset, len, userData, options, personality))
+            var result = PrepareFallocateInternal(fd, mode, offset, len, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -877,8 +999,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareFallocate(int fd, int mode, off_t offset, off_t len, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareFallocateInternal(fd, mode, offset, len, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareFallocateInternal(int fd, int mode, off_t offset, off_t len, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -892,7 +1019,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -907,11 +1034,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareOpenAt(int dfd, byte* path, int flags, mode_t mode = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareOpenAt(dfd, path, flags, mode, userData, options, personality))
+            var result = PrepareOpenAtInternal(dfd, path, flags, mode, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -929,8 +1058,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareOpenAt(int dfd, byte* path, int flags, mode_t mode = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareOpenAtInternal(dfd, path, flags, mode, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareOpenAtInternal(int dfd, byte* path, int flags, mode_t mode = default, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -943,7 +1077,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -955,11 +1089,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareClose(int fd, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareClose(fd, userData, options, personality))
+            var result = PrepareCloseInternal(fd, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -974,8 +1110,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareClose(int fd, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareCloseInternal(fd, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareCloseInternal(int fd, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -986,7 +1127,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1000,11 +1141,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareFilesUpdate(int* fds, int nrFds, int offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareFilesUpdate(fds, nrFds, offset, userData, options, personality))
+            var result = PrepareFilesUpdateInternal(fds, nrFds, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1021,8 +1164,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareFilesUpdate(int* fds, int nrFds, int offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareFilesUpdateInternal(fds, nrFds, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareFilesUpdateInternal(int* fds, int nrFds, int offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1036,7 +1184,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1052,11 +1200,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareStatx(int dfd, byte* path, int flags, uint mask, statx* statxbuf, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareStatx(dfd, path, flags, mask, statxbuf, userData, options, personality))
+            var result = PrepareStatxInternal(dfd, path, flags, mask, statxbuf, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1075,8 +1225,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareStatx(int dfd, byte* path, int flags, uint mask, statx* statxbuf, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareStatxInternal(dfd, path, flags, mask, statxbuf, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareStatxInternal(int dfd, byte* path, int flags, uint mask, statx* statxbuf, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1090,7 +1245,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1105,11 +1260,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareRead(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareRead(fd, buf, nbytes, offset, userData, options, personality))
+            var result = PrepareReadInternal(fd, buf, nbytes, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1127,8 +1284,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareRead(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareReadInternal(fd, buf, nbytes, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareReadInternal(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1142,7 +1304,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1157,11 +1319,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareWrite(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareWrite(fd, buf, nbytes, offset, userData, options, personality))
+            var result = PrepareWriteInternal(fd, buf, nbytes, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1179,8 +1343,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareWrite(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareWriteInternal(fd, buf, nbytes, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareWriteInternal(int fd, void* buf, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1194,7 +1363,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1209,11 +1378,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareFadvise(int fd, off_t offset, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareFadvise(fd, offset, len, advice, userData, options, personality))
+            var result = PrepareFadviseInternal(fd, offset, len, advice, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1231,8 +1402,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareFadvise(int fd, off_t offset, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareFadviseInternal(fd, offset, len, advice, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareFadviseInternal(int fd, off_t offset, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1245,7 +1421,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1259,11 +1435,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareMadvise(void* addr, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareMadvise(addr, len, advice, userData, options, personality))
+            var result = PrepareMadviseInternal(addr, len, advice, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1280,8 +1458,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareMadvise(void* addr, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareMadviseInternal(addr, len, advice, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareMadviseInternal(void* addr, off_t len, int advice, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1293,7 +1476,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1308,11 +1491,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareSend(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareSend(sockfd, buf, len, flags, userData, options, personality))
+            var result = PrepareSendInternal(sockfd, buf, len, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1330,8 +1515,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareSend(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareSendInternal(sockfd, buf, len, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareSendInternal(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1345,7 +1535,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1360,11 +1550,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareRecv(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareRecv(sockfd, buf, len, flags, userData, options, personality))
+            var result = PrepareRecvInternal(sockfd, buf, len, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1382,8 +1574,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareRecv(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareRecvInternal(sockfd, buf, len, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareRecvInternal(int sockfd, void* buf, size_t len, int flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1397,7 +1594,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1411,11 +1608,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareOpenAt2(int dfd, byte* path, open_how* how, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareOpenAt2(dfd, path, how, userData, options, personality))
+            var result = PrepareOpenAt2Internal(dfd, path, how, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1432,8 +1631,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareOpenAt2(int dfd, byte* path, open_how* how, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareOpenAt2Internal(dfd, path, how, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareOpenAt2Internal(int dfd, byte* path, open_how* how, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1446,7 +1650,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
         /// <summary>
@@ -1461,11 +1665,13 @@ namespace IoUring
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
         /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
         public void PrepareEpollCtl(int epfd, int fd, int op, epoll_event* ev, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!TryPrepareEpollCtl(epfd, fd, op, ev, userData, options, personality))
+            var result = PrepareEpollCtlInternal(epfd, fd, op, ev, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
             {
-                ThrowSubmissionQueueFullException();
+                ThrowSubmissionAcquisitionException(result);
             }
         }
 
@@ -1483,8 +1689,13 @@ namespace IoUring
         /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryPrepareEpollCtl(int epfd, int fd, int op, epoll_event* ev, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
-                return false;
+            return PrepareEpollCtlInternal(epfd, fd, op, ev, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareEpollCtlInternal(int epfd, int fd, int op, epoll_event* ev, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
 
             unchecked
             {
@@ -1497,7 +1708,7 @@ namespace IoUring
                 sqe->personality = personality;
             }
 
-            return true;
+            return SubmissionAcquireResult.SubmissionAcquired;
         }
 
     }

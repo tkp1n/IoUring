@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using IoUring.Internal;
 using Tmds.Linux;
 using static IoUring.Internal.Helpers;
 
@@ -7,7 +9,7 @@ namespace IoUring
     {
         public bool TryGetSubmissionQueueEntryUnsafe(out Submission submission)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
+            if (NextSubmissionQueueEntry(out var sqe) != SubmissionAcquireResult.SubmissionAcquired)
             {
                 submission = default;
                 return false;
@@ -32,7 +34,7 @@ namespace IoUring
         // Visible for testing
         internal bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
         {
-            if (!NextSubmissionQueueEntry(out var sqe))
+            if (NextSubmissionQueueEntry(out var sqe) != SubmissionAcquireResult.SubmissionAcquired)
                 return false;
 
             unchecked
@@ -50,7 +52,19 @@ namespace IoUring
             return true;
         }
 
-        private bool NextSubmissionQueueEntry(out io_uring_sqe* sqe)
-            => (sqe = _sq.NextSubmissionQueueEntry()) != NULL;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private SubmissionAcquireResult NextSubmissionQueueEntry(out io_uring_sqe* sqe)
+        {
+            sqe = (io_uring_sqe*) NULL;
+
+            if (!CheckAndIncrementOperationsInFlight())
+                return SubmissionAcquireResult.TooManyOperationsInFlight;
+
+            var result = _sq.NextSubmissionQueueEntry();
+            if (result == NULL) return SubmissionAcquireResult.SubmissionQueueFull;
+
+            sqe = result;
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
     }
 }

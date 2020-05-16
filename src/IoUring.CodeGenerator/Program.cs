@@ -96,6 +96,7 @@ namespace IoUring.CodeGenerator
         {
             using StreamWriter sw = new StreamWriter("../IoUring/Ring.Submission.Generated.cs", false);
 
+            sw.WriteLine("using IoUring.Internal;");
             sw.WriteLine("using Tmds.Linux;");
             sw.WriteLine("using static Tmds.Linux.LibC;");
             sw.WriteLine("using static IoUring.Internal.ThrowHelper;");
@@ -118,6 +119,7 @@ namespace IoUring.CodeGenerator
                 }
 
                 sw.WriteLine("        /// <exception cref=\"SubmissionQueueFullException\">If no more free space in the Submission Queue is available</exception>");
+                sw.WriteLine("        /// <exception cref=\"TooManyOperationsInFlightException\">If <see cref=\"Ring.SupportsNoDrop\"/> is false and too many operations are currently in flight</exception>");
 
                 sw.Write($"        public void Prepare{function.Name}(");
                 List<string> parameters = new List<string>();
@@ -133,9 +135,10 @@ namespace IoUring.CodeGenerator
                 sw.Write(string.Join(", ", parameters));
                 sw.WriteLine(")");
                 sw.WriteLine( "        {");
-                sw.WriteLine($"            if (!TryPrepare{function.Name}({string.Join(", ", function.Parameters.Select(p => p.Name))}))");
+                sw.WriteLine($"            var result = Prepare{function.Name}Internal({string.Join(", ", function.Parameters.Select(p => p.Name))});");
+                sw.WriteLine( "            if (result != SubmissionAcquireResult.SubmissionAcquired)");
                 sw.WriteLine( "            {");
-                sw.WriteLine( "                ThrowSubmissionQueueFullException();");
+                sw.WriteLine( "                ThrowSubmissionAcquisitionException(result);");
                 sw.WriteLine( "            }");
                 sw.WriteLine( "        }");
                 sw.WriteLine();
@@ -155,8 +158,18 @@ namespace IoUring.CodeGenerator
                 sw.Write(string.Join(", ", parameters));
                 sw.WriteLine(")");
                 sw.WriteLine( "        {");
-                sw.WriteLine( "            if (!NextSubmissionQueueEntry(out var sqe))");
-                sw.WriteLine( "                return false;");
+                sw.WriteLine($"            return Prepare{function.Name}Internal({string.Join(", ", function.Parameters.Select(p => p.Name))}) == SubmissionAcquireResult.SubmissionAcquired;");
+                sw.WriteLine( "        }");
+                sw.WriteLine();
+
+                // PrepareXXXInternal
+                sw.Write($"        private SubmissionAcquireResult Prepare{function.Name}Internal(");
+                sw.Write(string.Join(", ", parameters));
+                sw.WriteLine(")");
+
+                sw.WriteLine( "        {");
+                sw.WriteLine( "            var acquireResult = NextSubmissionQueueEntry(out var sqe);");
+                sw.WriteLine( "            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;");
                 sw.WriteLine();
                 sw.WriteLine( "            unchecked");
                 sw.WriteLine( "            {");
@@ -168,7 +181,7 @@ namespace IoUring.CodeGenerator
 
                 sw.WriteLine( "            }");
                 sw.WriteLine();
-                sw.WriteLine( "            return true;");
+                sw.WriteLine( "            return SubmissionAcquireResult.SubmissionAcquired;");
                 sw.WriteLine( "        }");
                 sw.WriteLine();
             }

@@ -11,6 +11,8 @@ namespace IoUring.Concurrent
         {
             if (options != null && (options.EnablePolledIo || options.EnableSubmissionPolling))
                 throw new NotSupportedException($"Polling options are not available for {nameof(ConcurrentRing)}");
+            if (!SupportsNoDrop)
+                throw new NotSupportedException($"{nameof(ConcurrentRing)} is not supported with kernel versions without IORING_FEAT_NODROP");
         }
 
         /// <summary>

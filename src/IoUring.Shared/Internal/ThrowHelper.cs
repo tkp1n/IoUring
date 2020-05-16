@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static Tmds.Linux.LibC;
 
@@ -61,6 +62,23 @@ namespace IoUring.Internal
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static Exception NewArgumentOutOfRangeException(ExceptionArgument argument)
             => new ArgumentOutOfRangeException(argument.ToString());
+
+        public static void ThrowSubmissionAcquisitionException(SubmissionAcquireResult result)
+            => throw NewSubmissionAcquisitionException(result);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Exception NewSubmissionAcquisitionException(SubmissionAcquireResult result)
+        {
+            if (result == SubmissionAcquireResult.SubmissionQueueFull)
+            {
+                return new SubmissionQueueFullException();
+            }
+            else
+            {
+                Debug.Assert(result == SubmissionAcquireResult.TooManyOperationsInFlight);
+                return new TooManyOperationsInFlightException();
+            }
+        }
 
         internal enum ExceptionArgument
         {
