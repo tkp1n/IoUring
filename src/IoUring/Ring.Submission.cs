@@ -7,6 +7,12 @@ namespace IoUring
 {
     public unsafe partial class Ring
     {
+        /// <summary>
+        /// If possible, returns a <see cref="Submission"/> to be prepared by the caller prior to any call to <see cref="SubmitAndWait"/>.
+        /// The <see cref="Submission"/> must not be used after a call to <see cref="SubmitAndWait"/>. No safe-guards enforce this.
+        /// </summary>
+        /// <param name="submission">Submission to be prepared manually.</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
         public bool TryGetSubmissionQueueEntryUnsafe(out Submission submission)
         {
             if (NextSubmissionQueueEntry(out var sqe) != SubmissionAcquireResult.SubmissionAcquired)
