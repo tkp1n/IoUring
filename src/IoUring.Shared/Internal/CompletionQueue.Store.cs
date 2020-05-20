@@ -69,6 +69,5 @@ namespace IoUring.Internal
             // We are not expected to block if no completions are available, so min_complete is set to 0.
             SafeEnter(ringFd, 0, 0, IORING_ENTER_GETEVENTS);
         }
-
     }
 }
