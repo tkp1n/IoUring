@@ -37,8 +37,16 @@ namespace IoUring.Internal
         /// </summary>
         private readonly io_uring_cqe* _cqes;
 
+        /// <summary>
+        /// Incremented by the application to indicate which Completion Queue Events were already consumed.
+        /// This is typically ahead of <see cref="_head"/> as the kernel must not yet know about bumps to this internal index to avoid write-barriers.
+        /// </summary>
         private readonly uint* _headInternal;
 
+        /// <summary>
+        /// Internal index to the most recent Completion Queue Event known to the application.
+        /// This is typically behind <see cref="_tail"/> as the internal index is only updated (read-barrier) when necessary.
+        /// </summary>
         private uint* _tailInternal;
 
         /// <summary>
