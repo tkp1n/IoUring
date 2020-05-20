@@ -28,11 +28,5 @@ namespace IoUring
         {
             _operationsInFlight--;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecrementOperationsInFlight(int value)
-        {
-            _operationsInFlight -= (uint) value;
-        }
     }
 }
