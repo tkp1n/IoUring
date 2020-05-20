@@ -3,20 +3,25 @@ using System.Threading;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
 using static IoUring.Internal.ThrowHelper;
+using System.Runtime.CompilerServices;
 
 namespace IoUring.Internal
 {
     internal sealed unsafe partial class CompletionQueue
     {
         public bool TryRead(int ringFd, out Completion result)
-            => TryRead(ringFd, out result, true);
+        {
+            var ok = TryReadInternal(out result) || TryReadSlow(ringFd, out result);
+            UpdateHead();
+            return ok;
+        }
 
         public Completion Read(int ringFd)
         {
             while (true)
             {
                 SafeEnter(ringFd, 0, 1, IORING_ENTER_GETEVENTS);
-                if (TryRead(ringFd, out var completion, true))
+                if (TryRead(ringFd, out var completion))
                 {
                     return completion;
                 }
@@ -29,7 +34,7 @@ namespace IoUring.Internal
             while (read < results.Length)
             {
                 // Head is moved below to avoid memory barrier in loop
-                if (TryRead(read, out results[read], false))
+                if (TryReadInternal(out results[read]) || TryReadSlow(ringFd, out results[read]))
                 {
                     read++;
                     continue; // keep on reading without syscall-ing
@@ -39,34 +44,42 @@ namespace IoUring.Internal
             }
 
             // Move head now, as we skipped the memory barrier in the TryRead above
-            Volatile.Write(ref *_head, *_headInternal);
+            UpdateHead();
         }
 
-        private bool TryRead(int ringFd, out Completion result, bool bumpHead)
+        private bool TryReadInternal(out Completion result)
         {
-            uint head = *_head;
+            var head = *_head;
 
-            // Try read from internal tail first to avoid memory barrier
-            bool eventsAvailable = head != *_tailInternal;
-
-            if (!eventsAvailable)
+            // Try read from internal tail to avoid memory barrier
+            if (head == *_tailInternal)
             {
-                if (_ioPolled)
-                {
-                    // If the kernel is polling I/O, we must reap completions.
-                    PollCompletion(ringFd);
-                }
+                result = default;
+                return false;
+            }
 
-                // double-check with a memory barrier to ensure we see everything the kernel manipulated prior to the tail bump
-                eventsAvailable = head != Volatile.Read(ref *_tail);
-                _tailInternal = _tail;
+            PrepareCompletion(out result, head);
+            return true;
+        }
 
-                // piggy-back on the read-barrier above to verify that we have no overflows
-                uint overflow = *_overflow;
-                if (overflow > 0)
-                {
-                    ThrowOverflowException(overflow);
-                }
+        private bool TryReadSlow(int ringFd, out Completion result)
+        {
+            var head = *_head;
+
+            if (_ioPolled)
+            {
+                // If the kernel is polling I/O, we must reap completions.
+                PollCompletion(ringFd);
+            }
+
+            // check with a memory barrier to ensure we see everything the kernel manipulated prior to the tail bump
+            var eventsAvailable = head != Volatile.Read(ref *_tail);
+
+            // piggy-back on the read-barrier above to verify that we have no overflows
+            var overflow = *_overflow;
+            if (overflow > 0)
+            {
+                ThrowOverflowException(overflow);
             }
 
             if (!eventsAvailable)
@@ -75,19 +88,25 @@ namespace IoUring.Internal
                 return false;
             }
 
+            // Update internal tail now, earlier would be pointless if eventsAvailable == false
+            _tailInternal = _tail;
+
+            PrepareCompletion(out result, head);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PrepareCompletion(out Completion result, uint head)
+        {
             var index = head & _ringMask;
             var cqe = &_cqes[index];
 
             result = new Completion(cqe->res, cqe->user_data);
 
             *_headInternal = unchecked(*_headInternal + 1);
-            if (bumpHead)
-            {
-                // ensure the kernel can take notice of us consuming the Events
-                Volatile.Write(ref *_head, *_headInternal);
-            }
-
-            return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UpdateHead() => Volatile.Write(ref *_head, *_headInternal);
     }
 }
