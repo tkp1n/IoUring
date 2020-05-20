@@ -28,25 +28,6 @@ namespace IoUring.Internal
             }
         }
 
-        public void Read(int ringFd, Span<Completion> results)
-        {
-            int read = 0;
-            while (read < results.Length)
-            {
-                // Head is moved below to avoid memory barrier in loop
-                if (TryReadInternal(out results[read]) || TryReadSlow(ringFd, out results[read]))
-                {
-                    read++;
-                    continue; // keep on reading without syscall-ing
-                }
-
-                SafeEnter(ringFd, 0, (uint) (results.Length - read), IORING_ENTER_GETEVENTS);
-            }
-
-            // Move head now, as we skipped the memory barrier in the TryRead above
-            UpdateHead();
-        }
-
         private bool TryReadInternal(out Completion result)
         {
             var head = *_head;

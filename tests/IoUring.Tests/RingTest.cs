@@ -62,30 +62,6 @@ namespace IoUring.Tests
         }
 
         [Fact]
-        public void BulkRead()
-        {
-            using var r = new Ring(8);
-
-            uint i;
-            for (i = 0; i < 8; i++)
-            {
-                Assert.True(r.TryPrepareNop(i));
-            }
-
-            Assert.Equal(SubmitResult.SubmittedSuccessfully, r.Submit(out var submitted));
-            Assert.Equal(i, submitted);
-
-            Span<Completion> completions = stackalloc Completion[(int)i];
-
-            r.Read(completions);
-            for (uint j = 0; j < i; j++)
-            {
-                Assert.Equal(0, completions[(int)j].result);
-                Assert.Equal(j, completions[(int)j].userData);
-            }
-        }
-
-        [Fact]
         public void TryRead()
         {
             using var r = new Ring(8);

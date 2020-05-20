@@ -23,7 +23,7 @@ namespace IoUring
         }
 
         /// <summary>
-        /// Reads, blocking if required, for a Completion Queue Event.
+        /// Reads, blocking if required, a Completion Queue Event.
         /// </summary>
         /// <returns>The read Completion Queue Event</returns>
         /// <exception cref="ErrnoException">If a syscall failed</exception>
@@ -33,18 +33,6 @@ namespace IoUring
             var completion = _cq.Read(_ringFd.DangerousGetHandle().ToInt32());
             DecrementOperationsInFlight();
             return completion;
-        }
-
-        /// <summary>
-        /// Reads, blocking if required, for as many Completion Queue Events as fit the provided span.
-        /// </summary>
-        /// <param name="results">Buffer for the Completion Queue Events</param>
-        /// <exception cref="ErrnoException">If a syscall failed</exception>
-        /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
-        public void Read(Span<Completion> results)
-        {
-            _cq.Read(_ringFd.DangerousGetHandle().ToInt32(), results);
-            DecrementOperationsInFlight(results.Length);
         }
     }
 }
