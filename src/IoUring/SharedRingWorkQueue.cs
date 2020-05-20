@@ -19,6 +19,10 @@ namespace IoUring
         /// Creates a new instance of <see cref="Ring"/> with a shared work queue
         /// </summary>
         public Ring Create(int entries, RingOptions? options = default)
-            => _sharedWq.Create(entries, options ?? new RingOptions(), (e, o) => new Ring(entries, o));
+            => _sharedWq.Create(entries, options ?? new RingOptions(), (e, o) =>
+            {
+                var r = new Ring(entries, o);
+                return (r.FileHandle, r);
+            });
     }
 }

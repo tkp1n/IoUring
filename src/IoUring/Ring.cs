@@ -1,14 +1,13 @@
 using System.Runtime.CompilerServices;
-using IoUring.Internal;
 
 namespace IoUring
 {
-    public sealed partial class Ring : BaseRing
+    public sealed partial class Ring
     {
         private readonly uint _cqSize;
         private uint _operationsInFlight;
 
-        public Ring(int entries, RingOptions? options = null) : base(entries, options)
+        public Ring(int entries, RingOptions? options = null) : this(entries, null, options)
         {
             _cqSize = SupportsNoDrop ? uint.MaxValue : _cq.Entries;
         }

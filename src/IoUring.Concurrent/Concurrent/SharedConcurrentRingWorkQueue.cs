@@ -19,6 +19,10 @@ namespace IoUring.Concurrent
         /// Creates a new instance of <see cref="ConcurrentRing"/> with a shared work queue
         /// </summary>
         public ConcurrentRing Create(int entries, RingOptions? options = default)
-            => _sharedWq.Create(entries, options ?? new RingOptions(), (e, o) => new ConcurrentRing(entries, o));
+            => _sharedWq.Create(entries, options ?? new RingOptions(), (e, o) =>
+            {
+                var r = new ConcurrentRing(entries, o);
+                return (r.FileHandle, r);
+            });
     }
 }

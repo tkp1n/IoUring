@@ -5,9 +5,19 @@ using static IoUring.Internal.Helpers;
 using static IoUring.Internal.ThrowHelper;
 using System.Diagnostics;
 
-namespace IoUring.Internal
-{
-    public abstract unsafe partial class BaseRing
+namespace
+#if IOURING_CONCURRENT
+    IoUring.Concurrent
+#else
+        IoUring
+#endif
+    {
+        public sealed unsafe partial class
+#if IOURING_CONCURRENT
+        ConcurrentRing
+#else
+        Ring
+#endif
     {
         /// <summary>
         /// Registers a set of buffers with the kernel to reduce per I/O overhead.

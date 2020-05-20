@@ -280,7 +280,7 @@ namespace IoUring.CodeGenerator
             sw.WriteLine("");
             sw.WriteLine("namespace IoUring.Concurrent");
             sw.WriteLine("{");
-            sw.WriteLine("    public sealed unsafe partial class ConcurrentRing : BaseRing");
+            sw.WriteLine("    public sealed unsafe partial class ConcurrentRing");
             sw.WriteLine("    {");
             foreach (var function in functions)
             {

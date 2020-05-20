@@ -1,12 +1,11 @@
 using System;
-using IoUring.Internal;
 using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Concurrent
 {
-    public sealed unsafe partial class ConcurrentRing : BaseRing
+    public sealed unsafe partial class ConcurrentRing
     {
-        public ConcurrentRing(int entries, RingOptions? options = null) : base(entries, options)
+        public ConcurrentRing(int entries, RingOptions? options = null) : this(entries, null, options)
         {
             if (options != null && (options.EnablePolledIo || options.EnableSubmissionPolling))
                 throw new NotSupportedException($"Polling options are not available for {nameof(ConcurrentRing)}");

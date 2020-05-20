@@ -4,7 +4,7 @@ using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Concurrent
 {
-    public sealed unsafe partial class ConcurrentRing : BaseRing
+    public sealed unsafe partial class ConcurrentRing
     {
         /// <summary>
         /// Adds a NOP to the Submission Queue.

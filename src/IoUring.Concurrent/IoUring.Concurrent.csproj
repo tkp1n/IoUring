@@ -5,6 +5,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <DefineConstants>IOURING_CONCURRENT</DefineConstants>
 
         <NoWarn>436</NoWarn>
 

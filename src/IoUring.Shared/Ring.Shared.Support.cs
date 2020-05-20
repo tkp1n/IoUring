@@ -1,13 +1,30 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using IoUring.Internal;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.ThrowHelper;
 
-namespace IoUring.Internal
-{
-    public abstract unsafe partial class BaseRing
+#if IOURING_CONCURRENT
+using RingType = IoUring.Concurrent.ConcurrentRing;
+#else
+using RingType = IoUring.Ring;
+#endif
+
+namespace
+#if IOURING_CONCURRENT
+    IoUring.Concurrent
+#else
+        IoUring
+#endif
+    {
+        public sealed unsafe partial class
+#if IOURING_CONCURRENT
+        ConcurrentRing
+#else
+        Ring
+#endif
     {
         private static readonly bool[] SupportedOperationsByKernelVersion = {
             KernelVersion.Supports.IORING_OP_NOP,
@@ -112,14 +129,14 @@ namespace IoUring.Internal
         public bool SupportsReadWriteCurrentPosition => (_features & IORING_FEAT_RW_CUR_POS) != 0;
 
         /// <summary>
-        /// If this flag is set, then <see cref="BaseRing"/> guarantees that both sync and async
+        /// If this flag is set, then <see cref="RingType"/> guarantees that both sync and async
         /// execution of a request assumes the credentials of the task that called
-        /// <see cref="BaseRing.Submit(out uint)"/>/<see cref="BaseRing.SubmitAndWait(uint, out uint)"/>
+        /// <see cref="RingType.Submit(out uint)"/>/<see cref="RingType.SubmitAndWait(uint, out uint)"/>
         /// to queue the requests. If this flag isn't set, then requests are issued with
-        /// the credentials of the task that originally created the <see cref="BaseRing"/>.
+        /// the credentials of the task that originally created the <see cref="RingType"/>.
         /// If only one task is using a ring, then this flag doesn't matter as the credentials
         /// will always be the same. Note that this is the default behavior, tasks can
-        /// still register different personalities through <see cref="BaseRing.RegisterPersonality"/>
+        /// still register different personalities through <see cref="RingType.RegisterPersonality"/>
         /// and specify the personality to use in the Submission Queue Entry.
         /// </summary>
         public bool SupportsCurrentPersonality => (_features & IORING_FEAT_CUR_PERSONALITY) != 0;

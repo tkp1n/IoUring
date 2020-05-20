@@ -1,23 +1,35 @@
 using System;
 using System.Runtime.InteropServices;
+using IoUring.Internal;
 using Tmds.Linux;
 using static Tmds.Linux.LibC;
 using static IoUring.Internal.Helpers;
 using static IoUring.Internal.ThrowHelper;
 
-namespace IoUring.Internal
+namespace
+#if IOURING_CONCURRENT
+    IoUring.Concurrent
+#else
+    IoUring
+#endif
 {
-    public abstract unsafe partial class BaseRing : IDisposable
+    public sealed unsafe partial class
+#if IOURING_CONCURRENT
+        ConcurrentRing
+#else
+        Ring
+#endif
+     : IDisposable
     {
         private readonly uint _flags;
         private readonly uint _features;
-        private protected readonly CloseHandle _ringFd;
+        private readonly CloseHandle _ringFd;
 
-        private protected readonly SubmissionQueue _sq;
+        private readonly SubmissionQueue _sq;
         private readonly UnmapHandle _sqHandle;
         private readonly UnmapHandle _sqeHandle;
 
-        private protected readonly CompletionQueue _cq;
+        private readonly CompletionQueue _cq;
         private readonly UnmapHandle _cqHandle;
 
         private readonly bool[] _supportedOperations;
@@ -100,7 +112,12 @@ namespace IoUring.Internal
             return new CompletionQueue(ringFd, ptr, &p->cq_off, ioPolled);
         }
 
-        protected BaseRing(int entries, RingOptions? ringOptions = default)
+        private
+#if IOURING_CONCURRENT
+            ConcurrentRing(int entries, object? hack, RingOptions? ringOptions = default)
+#else
+            Ring(int entries, object? hack, RingOptions? ringOptions = default)
+#endif
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || !KernelVersion.Supports.IoUring) ThrowPlatformNotSupportedException();
             if (entries < 1) ThrowArgumentOutOfRangeException(ExceptionArgument.entries);

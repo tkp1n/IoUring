@@ -3,7 +3,7 @@ using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Internal
 {
-    internal class SharedWorkQueue<T> where T : BaseRing
+    internal class SharedWorkQueue<T>
     {
         private int _ringFd;
 
@@ -17,7 +17,7 @@ namespace IoUring.Internal
         /// </summary>
         public static bool IsSupported => KernelVersion.Supports.IORING_SETUP_ATTACH_WQ;
 
-        public T Create(int entries, RingOptions options, Func<int, RingOptions, T> activator)
+        public T Create(int entries, RingOptions options, Func<int, RingOptions, (int, T)> activator)
         {
             if (_ringFd == 0)
             {
@@ -25,15 +25,15 @@ namespace IoUring.Internal
                 {
                     if (_ringFd == 0)
                     {
-                        var ring = activator(entries, options);
-                        _ringFd = ring.FileHandle;
-                        return ring;
+                        var (ringFd, result) = activator(entries, options);
+                        _ringFd = ringFd;
+                        return result;
                     }
                 }
             }
 
             options.WorkQueueFd = _ringFd;
-            return activator(entries, options);
+            return activator(entries, options).Item2;
         }
     }
 }
