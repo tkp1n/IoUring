@@ -10,10 +10,13 @@ namespace IoUring.Internal
     {
         public bool TryRead(out Completion result)
         {
-            var ok = TryReadInternal(out result) || TryReadSlow(out result);
+            var ok = TryReadNoUpdate(out result);
             UpdateHead();
             return ok;
         }
+
+        internal bool TryReadNoUpdate(out Completion result)
+            => TryReadInternal(out result) || TryReadSlow(out result);
 
         public Completion Read(int ringFd)
         {
@@ -87,6 +90,6 @@ namespace IoUring.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UpdateHead() => Volatile.Write(ref *_head, *_headInternal);
+        internal void UpdateHead() => Volatile.Write(ref *_head, *_headInternal);
     }
 }

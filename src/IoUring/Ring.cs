@@ -9,6 +9,7 @@ namespace IoUring
 
         public Ring(int entries, RingOptions? options = null) : this(entries, null, options)
         {
+            _ringCompletions = new RingCompletions(this);
             _cqSize = SupportsNoDrop ? uint.MaxValue : _cq.Entries;
         }
 
