@@ -11,7 +11,7 @@
 
         <RootNamespace>IoUring</RootNamespace>
 
-        <VersionPrefix>0.2.0</VersionPrefix>
+        <VersionPrefix>0.3.0</VersionPrefix>
 
         <Title>IoUring.Concurrent</Title>
         <Copyright>Copyright © Nicolas Portmann 2020</Copyright>
