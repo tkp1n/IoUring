@@ -217,7 +217,7 @@ namespace IoUring.Internal
             _headInternal = headInternal;
         }
 
-        public SubmitResult SubmitAndWait(int ringFd, uint minComplete, out uint operationsSubmitted)
+        public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
         {
             lock (Gate)
             {
@@ -235,6 +235,7 @@ namespace IoUring.Internal
                 // For minComplete to take effect, we must set IORING_ENTER_GETEVENTS
                 uint enterFlags = minComplete > 0 ? IORING_ENTER_GETEVENTS : 0;
 
+                int ringFd = _ringFd;
                 int res;
                 int err = default;
                 do

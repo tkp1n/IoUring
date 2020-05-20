@@ -1,5 +1,3 @@
-using System;
-
 namespace IoUring
 {
     public sealed partial class Ring
@@ -13,7 +11,7 @@ namespace IoUring
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
         public bool TryRead(out Completion result)
         {
-            if (_cq.TryRead(_ringFd.DangerousGetHandle().ToInt32(), out result))
+            if (_cq.TryRead(out result))
             {
                 DecrementOperationsInFlight();
                 return true;

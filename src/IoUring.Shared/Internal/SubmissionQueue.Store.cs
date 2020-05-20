@@ -6,6 +6,11 @@ namespace IoUring.Internal
     internal sealed unsafe partial class SubmissionQueue
     {
         /// <summary>
+        /// File descriptor of the io_uring instance.
+        /// </summary>
+        private readonly int _ringFd;
+
+        /// <summary>
         /// Incremented by the kernel to let the application know, another element was consumed.
         /// </summary>
         private readonly uint* _head;
@@ -68,9 +73,10 @@ namespace IoUring.Internal
         /// </summary>
         private readonly bool _ioPolled;
 
-        public SubmissionQueue(void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements, bool sqPolled, bool ioPolled)
+        public SubmissionQueue(int ringFd, void* ringBase, io_sqring_offsets* offsets, io_uring_sqe* elements, bool sqPolled, bool ioPolled)
             : this(ringBase, offsets)
         {
+            _ringFd = ringFd;
             _head = Add<uint>(ringBase, offsets->head);
             _tail = Add<uint>(ringBase, offsets->tail);
             _ringMask = *Add<uint>(ringBase, offsets->ring_mask);

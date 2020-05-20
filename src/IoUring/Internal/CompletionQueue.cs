@@ -8,9 +8,9 @@ namespace IoUring.Internal
 {
     internal sealed unsafe partial class CompletionQueue
     {
-        public bool TryRead(int ringFd, out Completion result)
+        public bool TryRead(out Completion result)
         {
-            var ok = TryReadInternal(out result) || TryReadSlow(ringFd, out result);
+            var ok = TryReadInternal(out result) || TryReadSlow(out result);
             UpdateHead();
             return ok;
         }
@@ -20,7 +20,7 @@ namespace IoUring.Internal
             while (true)
             {
                 SafeEnter(ringFd, 0, 1, IORING_ENTER_GETEVENTS);
-                if (TryRead(ringFd, out var completion))
+                if (TryRead(out var completion))
                 {
                     return completion;
                 }
@@ -42,14 +42,14 @@ namespace IoUring.Internal
             return true;
         }
 
-        private bool TryReadSlow(int ringFd, out Completion result)
+        private bool TryReadSlow(out Completion result)
         {
             var head = *_head;
 
             if (_ioPolled)
             {
                 // If the kernel is polling I/O, we must reap completions.
-                PollCompletion(ringFd);
+                PollCompletion();
             }
 
             // check with a memory barrier to ensure we see everything the kernel manipulated prior to the tail bump

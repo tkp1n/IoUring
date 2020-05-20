@@ -1,6 +1,5 @@
 using System;
 using IoUring.Internal;
-using Tmds.Linux;
 using static IoUring.Internal.ThrowHelper;
 
 namespace IoUring.Concurrent
@@ -82,6 +81,6 @@ namespace IoUring.Concurrent
         /// <exception cref="ErrnoException">If a syscall failed</exception>
         /// <exception cref="CompletionQueueOverflowException">If an overflow in the Completion Queue occurred</exception>
         public bool TryRead(out Completion result)
-            => _cq.TryRead(_ringFd.DangerousGetHandle().ToInt32(), out result);
+            => _cq.TryRead(out result);
     }
 }

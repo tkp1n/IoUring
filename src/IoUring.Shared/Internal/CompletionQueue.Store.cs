@@ -7,6 +7,11 @@ namespace IoUring.Internal
     internal sealed unsafe partial class CompletionQueue
     {
         /// <summary>
+        /// File descriptor of the io_uring instance.
+        /// </summary>
+        private readonly int _ringFd;
+
+        /// <summary>
         /// Incremented by the application to let the kernel know, which Completion Queue Events were already consumed.
         /// </summary>
         private readonly uint* _head;
@@ -54,8 +59,9 @@ namespace IoUring.Internal
         /// </summary>
         private readonly bool _ioPolled;
 
-        public CompletionQueue(void* ringBase, io_cqring_offsets* offsets, bool ioPolled)
+        public CompletionQueue(int ringFd, void* ringBase, io_cqring_offsets* offsets, bool ioPolled)
         {
+            _ringFd = ringFd;
             _head = Add<uint>(ringBase, offsets->head);
             _tail = Add<uint>(ringBase, offsets->tail);
             _ringMask = *Add<uint>(ringBase, offsets->ring_mask);
@@ -72,10 +78,10 @@ namespace IoUring.Internal
         /// </summary>
         public uint Entries => _ringEntries;
 
-        private static void PollCompletion(int ringFd)
+        private void PollCompletion()
         {
             // We are not expected to block if no completions are available, so min_complete is set to 0.
-            SafeEnter(ringFd, 0, 0, IORING_ENTER_GETEVENTS);
+            SafeEnter(_ringFd, 0, 0, IORING_ENTER_GETEVENTS);
         }
     }
 }

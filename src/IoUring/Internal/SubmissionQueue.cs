@@ -131,10 +131,10 @@ namespace IoUring.Internal
         [DebuggerStepThrough]
         private void CheckNoSubmissionsDropped() => Debug.Assert(Volatile.Read(ref *_dropped) == 0);
 
-        public SubmitResult SubmitAndWait(int ringFd, uint minComplete, out uint operationsSubmitted)
-            => SubmitAndWait(ringFd, minComplete, 0, out operationsSubmitted);
+        public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
+            => SubmitAndWait(minComplete, 0, out operationsSubmitted);
 
-        public SubmitResult SubmitAndWait(int ringFd, uint minComplete, uint skip, out uint operationsSubmitted)
+        public SubmitResult SubmitAndWait(uint minComplete, uint skip, out uint operationsSubmitted)
         {
             uint toSubmit = Notify(skip);
 
@@ -158,6 +158,7 @@ namespace IoUring.Internal
                 goto SkipSyscall;
             }
 
+            int ringFd = _ringFd;
             int res;
             int err = default;
             do

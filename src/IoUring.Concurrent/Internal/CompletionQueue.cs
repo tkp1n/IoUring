@@ -6,7 +6,7 @@ namespace IoUring.Internal
 {
     internal sealed unsafe partial class CompletionQueue
     {
-        public bool TryRead(int ringFd, out Completion result)
+        public bool TryRead(out Completion result)
         {
             uint head;
             uint next;

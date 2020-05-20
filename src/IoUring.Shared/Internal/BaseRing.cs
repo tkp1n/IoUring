@@ -74,7 +74,7 @@ namespace IoUring.Internal
             }
             sqeHandle = new UnmapHandle(sqePtr, sqeSize);
 
-            return new SubmissionQueue(ptr, &p->sq_off, (io_uring_sqe*) sqePtr, sqPolled, ioPolled);
+            return new SubmissionQueue(ringFd, ptr, &p->sq_off, (io_uring_sqe*) sqePtr, sqPolled, ioPolled);
         }
 
         private static CompletionQueue MapCq(int ringFd, size_t cqSize, io_uring_params* p, UnmapHandle sqHandle, bool ioPolled, out UnmapHandle cqHandle)
@@ -97,7 +97,7 @@ namespace IoUring.Internal
                 cqHandle = new UnmapHandle(ptr, cqSize);
             }
 
-            return new CompletionQueue(ptr, &p->cq_off, ioPolled);
+            return new CompletionQueue(ringFd, ptr, &p->cq_off, ioPolled);
         }
 
         protected BaseRing(int entries, RingOptions? ringOptions = default)
@@ -181,7 +181,7 @@ namespace IoUring.Internal
         /// <returns>The result of the operation</returns>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
         public SubmitResult SubmitAndWait(uint minComplete, out uint operationsSubmitted)
-            => _sq.SubmitAndWait(_ringFd.DangerousGetHandle().ToInt32(), minComplete, out operationsSubmitted);
+            => _sq.SubmitAndWait(minComplete, out operationsSubmitted);
 
         /// <summary>
         /// Notifies the kernel of the availability of new Submission Queue Entries.
