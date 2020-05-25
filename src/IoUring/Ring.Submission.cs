@@ -35,7 +35,10 @@ namespace IoUring
         /// <returns>The result of the operation</returns>
         /// <exception cref="ErrnoException">On negative result from syscall with errno other than EAGAIN, EBUSY and EINTR</exception>
         public SubmitResult SubmitAndWait(uint minComplete, uint skip, out uint operationsSubmitted)
-            => _sq.SubmitAndWait(minComplete, skip, out operationsSubmitted);
+        {
+            _operationsInFlight -= skip; // adjust operations in flight as skipped operations are never really flying
+            return _sq.SubmitAndWait(minComplete, skip, out operationsSubmitted);
+        }
 
         // Visible for testing
         internal bool TryPrepareReadWrite(byte op, int fd, void* iov, int count, off_t offset, int flags, ulong userData, SubmissionOption options)
