@@ -88,7 +88,7 @@ namespace IoUring.Internal
             uint head = *_head;
             uint pending = unchecked(tail - head);
             uint tailInternal = _tailInternal;
-            uint headInternal = _headInternal += skip;
+            uint headInternal = _headInternal + skip;
             if (headInternal == tailInternal)
             {
                 return pending;
@@ -179,7 +179,7 @@ namespace IoUring.Internal
 
             CheckNoSubmissionsDropped();
 
-            _headInternal = unchecked(_headInternal + (uint)res);
+            _headInternal = unchecked(_headInternal + skip + (uint)res);
 
             return (operationsSubmitted = (uint) res) >= toSubmit ?
                 SubmitResult.SubmittedSuccessfully :
