@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -41,7 +42,7 @@ namespace IoUring.CodeGenerator
 
             var functions = new List<Function>();
             var function = new Function();
-            var fieldNames = typeof(io_uring_sqe).GetFields().Select(f => f.Name).ToArray();
+            var fieldNames = typeof(io_uring_sqe).GetFields().Select(f => f.Name).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
             while (reader.Read())
             {
@@ -66,11 +67,13 @@ namespace IoUring.CodeGenerator
 
                 if (reader.Name == "MapToFields")
                 {
-                    foreach (var fieldName in fieldNames)
+                    for (int i = 0; i < reader.AttributeCount; i++)
                     {
-                        var value = reader.GetAttribute(fieldName);
-                        if (value != null)
-                            function.Mapping[fieldName] = value;
+                        reader.MoveToAttribute(i);
+                        function.Mapping[reader.Name] = reader.Value;
+
+                        if (!fieldNames.Contains(reader.Name))
+                            Console.Error.WriteLine($"Missing field: {reader.Name} for {function.Name}");
                     }
                 }
             }
