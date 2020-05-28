@@ -12,7 +12,7 @@ namespace IoUring.CodeGenerator
         public string Name { get; set; }
         public string Comment { get; set; }
         public List<Parameter> Parameters { get; } = new List<Parameter>();
-        public Dictionary<string, string> Mapping = new Dictionary<string, string>();
+        public Dictionary<string, string> Mapping { get; } = new Dictionary<string, string>();
     }
 
     class Parameter
@@ -23,7 +23,7 @@ namespace IoUring.CodeGenerator
         public string Comment { get; set; }
     }
 
-    class Program
+    static class Program
     {
         static void Main(string[] args)
         {
@@ -41,7 +41,7 @@ namespace IoUring.CodeGenerator
 
             var functions = new List<Function>();
             var function = new Function();
-            var fieldNames = typeof(io_uring_sqe).GetFields().Select(f => f.Name);
+            var fieldNames = typeof(io_uring_sqe).GetFields().Select(f => f.Name).ToArray();
 
             while (reader.Read())
             {
@@ -196,9 +196,9 @@ namespace IoUring.CodeGenerator
             sw.WriteLine("    public enum RingOperation : byte");
             sw.WriteLine("    {");
 
-            foreach (var function in functions)
+            foreach (var function in functions.Select(x => x.Name).Distinct())
             {
-                sw.WriteLine($"        {function.Name},");
+                sw.WriteLine($"        {function},");
             }
 
             sw.WriteLine("    }");
