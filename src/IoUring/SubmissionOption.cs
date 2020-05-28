@@ -11,6 +11,13 @@ namespace IoUring
         None = 0x00,
 
         /// <summary>
+        /// When this flag is specified, fd is an index into the files array registered with
+        /// the <see cref="Ring"/> instance. <seealso cref="Ring.RegisterFiles"/>
+        /// </summary>
+        /// <remarks>Available since 5.1</remarks>
+        FixedFile = 1 << 0, // IOSQE_FIXED_FILE
+
+        /// <summary>
         /// When this flag is specified, the SQE will not be started before previously
         /// submitted SQEs have completed, and new SQEs will not be started before this
         /// one completes.
