@@ -46,7 +46,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor to read from</param>
         /// <param name="iov">I/O vectors to read to</param>
         /// <param name="count">Number of I/O vectors</param>
-        /// <param name="offset">Offset in bytes into the I/O vectors (as per preadv)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
@@ -67,7 +67,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor to read from</param>
         /// <param name="iov">I/O vectors to read to</param>
         /// <param name="count">Number of I/O vectors</param>
-        /// <param name="offset">Offset in bytes into the I/O vectors (as per preadv)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
         /// <param name="flags">Flags for the I/O (as per preadv2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
@@ -90,7 +90,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor to write to</param>
         /// <param name="iov">I/O vectors to write</param>
         /// <param name="count">Number of I/O vectors</param>
-        /// <param name="offset">Offset in bytes into the I/O vectors (as per pwritev)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per pwritev)</param>
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
@@ -111,7 +111,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor to write to</param>
         /// <param name="iov">I/O vectors to write</param>
         /// <param name="count">Number of I/O vectors</param>
-        /// <param name="offset">Offset in bytes into the I/O vectors (as per pwritev)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per pwritev)</param>
         /// <param name="flags">Flags for the I/O (as per pwritev2)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
@@ -173,7 +173,7 @@ namespace IoUring.Concurrent
         /// <param name="buf">Buffer/file to read to</param>
         /// <param name="count">Number of bytes to read</param>
         /// <param name="index">Index of buffer/file</param>
-        /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -194,7 +194,7 @@ namespace IoUring.Concurrent
         /// <param name="buf">Buffer/file to read to</param>
         /// <param name="count">Number of bytes to read</param>
         /// <param name="index">Index of buffer/file</param>
-        /// <param name="offset">Offset in bytes into the file descriptor (as per preadv)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -217,7 +217,7 @@ namespace IoUring.Concurrent
         /// <param name="buf">Buffer/file to write</param>
         /// <param name="count">Number of bytes to write</param>
         /// <param name="index">Index of buffer/file</param>
-        /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -238,7 +238,7 @@ namespace IoUring.Concurrent
         /// <param name="buf">Buffer/file to write</param>
         /// <param name="count">Number of bytes to write</param>
         /// <param name="index">Index of buffer/file</param>
-        /// <param name="offset">Offset in bytes into the file descriptor (as per pwritev)</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per pwritev)</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -892,7 +892,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor</param>
         /// <param name="buf">Buffer to read to</param>
         /// <param name="nbytes">Number of bytes to read</param>
-        /// <param name="offset">File offset to read at</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -912,7 +912,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor</param>
         /// <param name="buf">Buffer to read to</param>
         /// <param name="nbytes">Number of bytes to read</param>
-        /// <param name="offset">File offset to read at</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -934,7 +934,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor</param>
         /// <param name="buf">Buffer to write</param>
         /// <param name="nbytes">Number of bytes to write</param>
-        /// <param name="offset">File offset to write at</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>
@@ -954,7 +954,7 @@ namespace IoUring.Concurrent
         /// <param name="fd">File descriptor</param>
         /// <param name="buf">Buffer to write</param>
         /// <param name="nbytes">Number of bytes to write</param>
-        /// <param name="offset">File offset to write at</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
         /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
         /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
         /// <param name="personality">The personality to impersonate for this submission</param>

@@ -12,7 +12,7 @@
             <Parameter type="int" name="fd" comment="File descriptor to read from"/>
             <Parameter type="iovec*" name="iov" comment="I/O vectors to read to"/>
             <Parameter type="int" name="count" comment="Number of I/O vectors"/>
-            <Parameter type="off_t" name="offset" default="default" comment="Offset in bytes into the I/O vectors (as per preadv)"/>
+            <Parameter type="off_t" name="offset" default="default" comment="Offset at which the I/O is performed (as per preadv)"/>
             <Parameter type="int" name="flags" default="0" comment="Flags for the I/O (as per preadv2)"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
@@ -24,7 +24,7 @@
             <Parameter type="int" name="fd" comment="File descriptor to write to"/>
             <Parameter type="iovec*" name="iov" comment="I/O vectors to write"/>
             <Parameter type="int" name="count" comment="Number of I/O vectors"/>
-            <Parameter type="off_t" name="offset" default="default" comment="Offset in bytes into the I/O vectors (as per pwritev)"/>
+            <Parameter type="off_t" name="offset" default="default" comment="Offset at which the I/O is performed (as per pwritev)"/>
             <Parameter type="int" name="flags" default="0" comment="Flags for the I/O (as per pwritev2)"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
@@ -46,7 +46,7 @@
             <Parameter type="void*" name="buf" comment="Buffer/file to read to"/>
             <Parameter type="size_t" name="count" comment="Number of bytes to read"/>
             <Parameter type="int" name="index" comment="Index of buffer/file"/>
-            <Parameter type="off_t" name="offset" default="default" comment="Offset in bytes into the file descriptor (as per preadv)"/>
+            <Parameter type="off_t" name="offset" default="default" comment="Offset at which the I/O is performed (as per preadv)"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
@@ -58,7 +58,7 @@
             <Parameter type="void*" name="buf" comment="Buffer/file to write"/>
             <Parameter type="size_t" name="count" comment="Number of bytes to write"/>
             <Parameter type="int" name="index" comment="Index of buffer/file"/>
-            <Parameter type="off_t" name="offset" default="default" comment="Offset in bytes into the file descriptor (as per pwritev)"/>
+            <Parameter type="off_t" name="offset" default="default" comment="Offset at which the I/O is performed (as per pwritev)"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
@@ -225,7 +225,7 @@
             <Parameter type="int" name="fd" comment="File descriptor"/>
             <Parameter type="void*" name="buf" comment="Buffer to read to"/>
             <Parameter type="uint" name="nbytes" comment="Number of bytes to read"/>
-            <Parameter type="off_t" name="offset" comment="File offset to read at"/>
+            <Parameter type="off_t" name="offset" comment="Offset at which the I/O is performed"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
@@ -236,7 +236,7 @@
             <Parameter type="int" name="fd" comment="File descriptor"/>
             <Parameter type="void*" name="buf" comment="Buffer to write"/>
             <Parameter type="uint" name="nbytes" comment="Number of bytes to write"/>
-            <Parameter type="off_t" name="offset" comment="File offset to write at"/>
+            <Parameter type="off_t" name="offset" comment="Offset at which the I/O is performed"/>
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
