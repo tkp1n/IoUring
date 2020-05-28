@@ -7,7 +7,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_NOP" flags="(byte) options" fd="-1" user_data="userData"/>
     </Function>
-    <Function name="ReadV" comment="a readv, preadv or preadv2" unsafe="true">
+    <Function name="ReadV" comment="a readv, preadv or preadv2">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to read from"/>
             <Parameter type="iovec*" name="iov" comment="I/O vectors to read to"/>
@@ -19,7 +19,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_READV" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) iov" len="(uint) count" rw_flags="flags" user_data="userData"/>
     </Function>
-    <Function name="WriteV" comment="a writev, pwritev or pwritev2" unsafe="true">
+    <Function name="WriteV" comment="a writev, pwritev or pwritev2">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to write to"/>
             <Parameter type="iovec*" name="iov" comment="I/O vectors to write"/>
@@ -40,7 +40,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_FSYNC" flags="(byte) options" fd="fd" fsync_flags="(uint) fsyncOptions" user_data="userData"/>
     </Function>
-    <Function name="ReadFixed" comment="a read using a registered buffer/file" unsafe="true">
+    <Function name="ReadFixed" comment="a read using a registered buffer/file">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to read from"/>
             <Parameter type="void*" name="buf" comment="Buffer/file to read to"/>
@@ -52,7 +52,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_READ_FIXED" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) buf" len="(uint) count" buf_index="(ushort) index" user_data="userData"/>
     </Function>
-    <Function name="WriteFixed" comment="a write using a registered buffer/file" unsafe="true">
+    <Function name="WriteFixed" comment="a write using a registered buffer/file">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to write to"/>
             <Parameter type="void*" name="buf" comment="Buffer/file to write"/>
@@ -92,7 +92,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_SYNC_FILE_RANGE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" len="(uint) count" sync_range_flags="flags" user_data="userData"/>
     </Function>
-    <Function name="SendMsg" comment="a sendmsg" unsafe="true">
+    <Function name="SendMsg" comment="a sendmsg">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to send to"/>
             <Parameter type="msghdr*" name="msg" comment="Message to send"/>
@@ -102,7 +102,7 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_SENDMSG" flags="(byte) options" fd="fd" addr="(ulong) msg" len="1" msg_flags="flags" user_data="userData"/>
     </Function>
-    <Function name="RecvMsg" comment="a recvmsg" unsafe="true">
+    <Function name="RecvMsg" comment="a recvmsg">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to receive from"/>
             <Parameter type="msghdr*" name="msg" comment="Message to read to"/>
