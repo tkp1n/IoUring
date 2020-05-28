@@ -740,6 +740,7 @@ namespace IoUring
                 sqe->opcode = IORING_OP_OPENAT2;
                 sqe->flags = (byte) options;
                 sqe->fd = dfd;
+                sqe->off = (ulong) how;
                 sqe->addr = (ulong) path;
                 sqe->len = SizeOf.open_how;
                 sqe->user_data = userData;
@@ -748,7 +749,7 @@ namespace IoUring
         }
 
         /// <summary>
-        /// Prepares this Submission Queue Entry as .
+        /// Prepares this Submission Queue Entry as an epoll_ctl.
         /// </summary>
         /// <param name="epfd">epoll instance file descriptor</param>
         /// <param name="fd">File descriptor</param>
@@ -766,6 +767,7 @@ namespace IoUring
                 sqe->opcode = IORING_OP_EPOLL_CTL;
                 sqe->flags = (byte) options;
                 sqe->fd = epfd;
+                sqe->off = (ulong) fd;
                 sqe->addr = (ulong) ev;
                 sqe->len = (uint) op;
                 sqe->user_data = userData;

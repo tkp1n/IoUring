@@ -293,9 +293,9 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_OPENAT2" flags="(byte) options" fd="dfd" offset="(ulong) how" addr="(ulong) path" len="SizeOf.open_how" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_OPENAT2" flags="(byte) options" fd="dfd" off="(ulong) how" addr="(ulong) path" len="SizeOf.open_how" user_data="userData"/>
     </Function>
-    <Function name="EpollCtl" comments="an epoll_ctl">
+    <Function name="EpollCtl" comment="an epoll_ctl">
         <Parameters>
             <Parameter type="int" name="epfd" comment="epoll instance file descriptor"/>
             <Parameter type="int" name="fd" comment="File descriptor"/>
@@ -304,6 +304,6 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_EPOLL_CTL" flags="(byte) options" fd="epfd" offset="(ulong) fd" addr="(ulong) ev" len="(uint) op" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_EPOLL_CTL" flags="(byte) options" fd="epfd" off="(ulong) fd" addr="(ulong) ev" len="(uint) op" user_data="userData"/>
     </Function>
 </IoUring>

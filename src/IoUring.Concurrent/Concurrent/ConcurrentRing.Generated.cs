@@ -1177,7 +1177,7 @@ namespace IoUring.Concurrent
         }
 
         /// <summary>
-        /// Adds  to the Submission Queue.
+        /// Adds an epoll_ctl to the Submission Queue.
         /// </summary>
         /// <param name="epfd">epoll instance file descriptor</param>
         /// <param name="fd">File descriptor</param>
@@ -1196,7 +1196,7 @@ namespace IoUring.Concurrent
         }
 
         /// <summary>
-        /// Attempts to add  to the Submission Queue without it being submitted.
+        /// Attempts to add an epoll_ctl to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="epfd">epoll instance file descriptor</param>

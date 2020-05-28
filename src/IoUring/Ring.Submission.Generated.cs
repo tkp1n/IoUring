@@ -1644,6 +1644,7 @@ namespace IoUring
                 sqe->opcode = IORING_OP_OPENAT2;
                 sqe->flags = (byte) options;
                 sqe->fd = dfd;
+                sqe->off = (ulong) how;
                 sqe->addr = (ulong) path;
                 sqe->len = SizeOf.open_how;
                 sqe->user_data = userData;
@@ -1654,7 +1655,7 @@ namespace IoUring
         }
 
         /// <summary>
-        /// Adds  to the Submission Queue without it being submitted.
+        /// Adds an epoll_ctl to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="epfd">epoll instance file descriptor</param>
@@ -1676,7 +1677,7 @@ namespace IoUring
         }
 
         /// <summary>
-        /// Attempts to add  to the Submission Queue without it being submitted.
+        /// Attempts to add an epoll_ctl to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
         /// <param name="epfd">epoll instance file descriptor</param>
@@ -1702,6 +1703,7 @@ namespace IoUring
                 sqe->opcode = IORING_OP_EPOLL_CTL;
                 sqe->flags = (byte) options;
                 sqe->fd = epfd;
+                sqe->off = (ulong) fd;
                 sqe->addr = (ulong) ev;
                 sqe->len = (uint) op;
                 sqe->user_data = userData;
