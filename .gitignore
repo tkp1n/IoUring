@@ -5,3 +5,4 @@ obj
 .DS_Store
 *.user
 *.blob
+.vs

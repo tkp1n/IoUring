@@ -30,8 +30,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="..\IoUring.Shared\*.cs" Link=".\*.cs" />
-        <Compile Include="..\IoUring.Shared\Internal\*.cs" Link=".\Internal\*.cs" />
+		<Compile Include="..\IoUring.Shared\*.cs" LinkBase="Shared" />
+		<Compile Include="..\IoUring.Shared\Internal\*.cs" LinkBase="Shared.Internal" />
     </ItemGroup>
 
     <ItemGroup>
