@@ -354,7 +354,7 @@
 		</Parameters>
 		<MapToFields opcode="IORING_OP_SPLICE" flags="(byte) options" fd="fdOut" off="offOut" splice_off_in="offIn" len="nbytes" splice_flags="spliceFlags" user_data="userData" splice_fd_in="fdIn"/>
 	</Function>
-	<Function name="SpliceFixed" comment="a splice using a fixed file/buffer as source">
+	<Function name="SpliceFixed" comment="a splice using a fixed file/buffer as source" native="false">
 		<Parameters>
 			<Parameter type="int" name="fdIn" comment="Fixed source file/buffer"/>
 			<Parameter type="ulong" name="offIn" comment="Offset into the source"/>

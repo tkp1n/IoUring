@@ -57,6 +57,9 @@ namespace
             KernelVersion.Supports.IORING_OP_RECV,
             KernelVersion.Supports.IORING_OP_OPENAT2,
             KernelVersion.Supports.IORING_OP_EPOLL_CTL,
+            KernelVersion.Supports.IORING_OP_SPLICE,
+            KernelVersion.Supports.IORING_OP_PROVIDE_BUFFERS,
+            KernelVersion.Supports.IORING_OP_REMOVE_BUFFERS,
         };
 
         private static bool[] FetchSupportedOperations(int ringFd)
@@ -143,7 +146,7 @@ namespace
 
         /// <summary>
         /// If this flag is set, then <see cref="RingType"/> supports reading and writing operations
-        /// without manually polling first. The prepared read/write operation will be completed as soon as 
+        /// without manually polling first. The prepared read/write operation will be completed as soon as
         /// possible by the kernel.
         /// </summary>
         public bool SupportsFastPoll => (_features & IORING_FEAT_FAST_POLL) != 0;

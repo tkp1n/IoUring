@@ -54,6 +54,7 @@ namespace IoUring.Internal
             public static bool IOSQE_IO_LINK => AtLeast(5, 3);
             public static bool IOSQE_IO_HARDLINK => AtLeast(5, 5);
             public static bool IOSQE_ASYNC => AtLeast(5, 6);
+            public static bool IOSQE_BUFFER_SELECT => AtLeast(5, 7);
 
             public static bool IORING_SETUP_IOPOLL => AtLeast(5, 1);
             public static bool IORING_SETUP_SQPOLL => AtLeast(5, 1);
@@ -97,6 +98,10 @@ namespace IoUring.Internal
             public static bool IORING_OP_RECV => AtLeast(5, 6);
             public static bool IORING_OP_OPENAT2 => AtLeast(5, 6);
             public static bool IORING_OP_EPOLL_CTL => AtLeast(5, 6);
+
+            public static bool IORING_OP_SPLICE => AtLeast(5, 7);
+            public static bool IORING_OP_PROVIDE_BUFFERS => AtLeast(5, 7);
+            public static bool IORING_OP_REMOVE_BUFFERS => AtLeast(5, 7);
 
             public static bool IORING_REGISTER_BUFFERS => AtLeast(5, 1);
             public static bool IORING_REGISTER_FILES => AtLeast(5, 1);

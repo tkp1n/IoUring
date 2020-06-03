@@ -12,6 +12,7 @@ namespace IoUring.CodeGenerator
     {
         public string Name { get; set; }
         public string Comment { get; set; }
+        public bool Native { get; set; }
         public List<Parameter> Parameters { get; } = new List<Parameter>();
         public Dictionary<string, string> Mapping { get; } = new Dictionary<string, string>();
     }
@@ -52,6 +53,7 @@ namespace IoUring.CodeGenerator
                     function = new Function();
                     function.Name = reader.GetAttribute("name");
                     function.Comment = reader.GetAttribute("comment");
+                    function.Native = reader.GetAttribute("native") == null;
                     functions.Add(function);
                 }
 
@@ -199,7 +201,7 @@ namespace IoUring.CodeGenerator
             sw.WriteLine("    public enum RingOperation : byte");
             sw.WriteLine("    {");
 
-            foreach (var function in functions.Select(x => x.Name).Distinct())
+            foreach (var function in functions.Where(x => x.Native).Select(x => x.Name).Distinct())
             {
                 sw.WriteLine($"        {function},");
             }

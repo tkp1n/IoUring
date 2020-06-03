@@ -3,10 +3,10 @@ using Xunit;
 
 namespace IoUring.Tests
 {
-    public class RingSupportTest 
+    public class RingSupportTest
     {
         [Fact]
-        public void SmokeTest() 
+        public void SmokeTest()
         {
             Assert.True(Ring.IsSupported);
 
@@ -14,7 +14,7 @@ namespace IoUring.Tests
 
             foreach (var i in Enum.GetValues(typeof(RingOperation)))
             {
-                Assert.True(r.Supports((RingOperation)i));
+                Assert.True(r.Supports((RingOperation)i), $"{((RingOperation)i).ToString()} not supported");
             }
         }
     }

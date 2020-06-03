@@ -33,7 +33,6 @@ namespace IoUring
         OpenAt2,
         EpollCtl,
         Splice,
-        SpliceFixed,
         ProvideBuffers,
         RemoveBuffers,
     }
