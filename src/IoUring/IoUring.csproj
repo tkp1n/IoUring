@@ -6,7 +6,7 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
 
-        <VersionPrefix>0.3.0</VersionPrefix>
+        <VersionPrefix>0.4.0</VersionPrefix>
 
         <Title>IoUring</Title>
         <Copyright>Copyright © Nicolas Portmann 2020</Copyright>
