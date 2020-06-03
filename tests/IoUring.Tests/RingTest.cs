@@ -35,8 +35,8 @@ namespace IoUring.Tests
             Assert.Equal(8, r.SubmissionEntriesAvailable);
 
             Assert.True(r.TryRead(out Completion c));
-            Assert.Equal(0, c.result);
-            Assert.Equal(123ul, c.userData);
+            Assert.Equal(0, c.Result);
+            Assert.Equal(123ul, c.UserData);
         }
 
         [Fact]
@@ -56,8 +56,8 @@ namespace IoUring.Tests
             for (uint j = 0; j < i; j++)
             {
                 Assert.True(r.TryRead(out var c));
-                Assert.Equal(0, c.result);
-                Assert.Equal(j, c.userData);
+                Assert.Equal(0, c.Result);
+                Assert.Equal(j, c.UserData);
             }
         }
 
@@ -74,8 +74,8 @@ namespace IoUring.Tests
                 Assert.Equal(1u, submitted);
 
                 Assert.True(r.TryRead(out var c));
-                Assert.Equal(0, c.result);
-                Assert.Equal(i, c.userData);
+                Assert.Equal(0, c.Result);
+                Assert.Equal(i, c.UserData);
             }
 
             Assert.False(r.TryRead(out _));
@@ -98,8 +98,8 @@ namespace IoUring.Tests
             for (uint j = 0; j < i; j++)
             {
                 var completion = r.Read();
-                Assert.Equal(0, completion.result);
-                Assert.Equal(j, completion.userData);
+                Assert.Equal(0, completion.Result);
+                Assert.Equal(j, completion.UserData);
             }
         }
 
@@ -117,16 +117,16 @@ namespace IoUring.Tests
                 {
                     while (i < events & ring.TryRead(out Completion c))
                     {
-                        Assert.Equal(0, c.result);
-                        Assert.Equal(i, c.userData);
+                        Assert.Equal(0, c.Result);
+                        Assert.Equal(i, c.UserData);
                         i++;
                     }
 
                     if (i < events)
                     {
                         Completion c = ring.Read();
-                        Assert.Equal(0, c.result);
-                        Assert.Equal(i, c.userData);
+                        Assert.Equal(0, c.Result);
+                        Assert.Equal(i, c.UserData);
                         i++;
                     }
                 }
@@ -199,11 +199,11 @@ namespace IoUring.Tests
             Assert.Equal(2u, submitted);
 
             Assert.True(r.TryRead(out var c));
-            Assert.Equal(1u, c.userData);
+            Assert.Equal(1u, c.UserData);
 
             Assert.True(r.TryRead(out c));
-            Assert.Equal(2u, c.userData);
-            Assert.Equal(EINVAL, -c.result);
+            Assert.Equal(2u, c.UserData);
+            Assert.Equal(EINVAL, -c.Result);
 
             // Submissions after invalid one are ignored by kernel without dropped being incremented
             Assert.False(r.TryRead(out _));
@@ -221,7 +221,7 @@ namespace IoUring.Tests
             for (uint i = 0; i < 8; i++)
             {
                 Assert.True(r.TryRead(out c));
-                Assert.Equal(3 + i, c.userData);
+                Assert.Equal(3 + i, c.UserData);
             }
         }
 
@@ -239,12 +239,12 @@ namespace IoUring.Tests
             Assert.Equal(2u, submitted);
 
             Assert.True(ring.TryRead(out var completion));
-            Assert.Equal(0, completion.result);
-            Assert.Equal(1u, completion.userData);
+            Assert.Equal(0, completion.Result);
+            Assert.Equal(1u, completion.UserData);
 
             Assert.True(ring.TryRead(out completion));
-            Assert.Equal(0, completion.result);
-            Assert.Equal(2u, completion.userData);
+            Assert.Equal(0, completion.Result);
+            Assert.Equal(2u, completion.UserData);
 
             Assert.False(ring.TryRead(out _));
         }
@@ -265,8 +265,8 @@ namespace IoUring.Tests
             Assert.Equal(1u, submitted);
 
             Assert.True(ring.TryRead(out var completion));
-            Assert.Equal(0, completion.result);
-            Assert.Equal(2u, completion.userData);
+            Assert.Equal(0, completion.Result);
+            Assert.Equal(2u, completion.UserData);
 
             Assert.False(ring.TryRead(out _));
 
@@ -286,8 +286,8 @@ namespace IoUring.Tests
             for (uint i = 1; i <= 4; i++)
             {
                 Assert.True(ring.TryRead(out var completion));
-                Assert.Equal(0, completion.result);
-                Assert.Equal(i, completion.userData);
+                Assert.Equal(0, completion.Result);
+                Assert.Equal(i, completion.UserData);
             }
 
             Assert.False(ring.TryRead(out _));

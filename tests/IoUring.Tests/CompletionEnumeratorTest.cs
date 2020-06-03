@@ -19,7 +19,7 @@ namespace IoUring.Tests
             ulong i = 1;
             foreach (var completion in r.Completions)
             {
-                Assert.Equal(i++, completion.userData);
+                Assert.Equal(i++, completion.UserData);
             }
 
             Assert.Equal(4u, i);

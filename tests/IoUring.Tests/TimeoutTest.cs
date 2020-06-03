@@ -27,7 +27,7 @@ namespace IoUring.Tests
             Thread.Sleep(TimeSpan.FromSeconds(1));
 
             Assert.True(r.TryRead(out c));
-            Assert.Equal(-ETIME, c.result);
+            Assert.Equal(-ETIME, c.Result);
         }
 
         [Fact]
@@ -51,11 +51,11 @@ namespace IoUring.Tests
             Assert.Equal(1u, submitted);
 
             Assert.True(r.TryRead(out c));
-            Assert.Equal(0, c.result);
-            Assert.Equal(123u, c.userData);
+            Assert.Equal(0, c.Result);
+            Assert.Equal(123u, c.UserData);
 
             Assert.True(r.TryRead(out c));
-            Assert.Equal(0, c.result);
+            Assert.Equal(0, c.Result);
         }
     }
 }

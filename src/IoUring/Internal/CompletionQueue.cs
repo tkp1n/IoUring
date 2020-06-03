@@ -84,7 +84,7 @@ namespace IoUring.Internal
             var index = head & _ringMask;
             var cqe = &_cqes[index];
 
-            result = new Completion(cqe->res, cqe->user_data);
+            result = Completion.FromCqe(cqe);
 
             *_headInternal = unchecked(*_headInternal + 1);
         }

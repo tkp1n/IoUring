@@ -50,7 +50,7 @@ namespace IoUring.Concurrent.Tests
                     for (int j = 0; j < actionPerThread; j++)
                     {
                         Assert.True(r.TryRead(out var completion));
-                        Assert.Equal(0, completion.result);
+                        Assert.Equal(0, completion.Result);
                     }
                 });
             }
@@ -113,7 +113,7 @@ namespace IoUring.Concurrent.Tests
                     for (int j = 0; j < actionPerThread * batchSize; j++)
                     {
                         Assert.True(r.TryRead(out var completion));
-                        Assert.Equal(0, completion.result);
+                        Assert.Equal(0, completion.Result);
                     }
                 });
             }
@@ -181,11 +181,11 @@ namespace IoUring.Concurrent.Tests
             Assert.Equal(2u, submitted);
 
             Assert.True(r.TryRead(out var c));
-            Assert.Equal(1u, c.userData);
+            Assert.Equal(1u, c.UserData);
 
             Assert.True(r.TryRead(out c));
-            Assert.Equal(2u, c.userData);
-            Assert.Equal(EINVAL, -c.result);
+            Assert.Equal(2u, c.UserData);
+            Assert.Equal(EINVAL, -c.Result);
 
             // Submissions after invalid one are ignored by kernel without dropped being incremented
             Assert.False(r.TryRead(out _));
@@ -205,7 +205,7 @@ namespace IoUring.Concurrent.Tests
             for (uint i = 0; i < 8; i++)
             {
                 Assert.True(r.TryRead(out c));
-                Assert.Equal(3 + i, c.userData);
+                Assert.Equal(3 + i, c.UserData);
             }
         }
     }

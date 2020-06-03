@@ -1,6 +1,7 @@
 using System.Threading;
 using static IoUring.Internal.ThrowHelper;
 using static IoUring.Internal.Helpers;
+using Tmds.Linux;
 
 namespace IoUring.Internal
 {
@@ -27,7 +28,7 @@ namespace IoUring.Internal
                 var index = head & _ringMask;
                 var cqe = &_cqes[index];
 
-                result = new Completion(cqe->res, cqe->user_data);
+                result = Completion.FromCqe(cqe);
 
             } while (CompareExchange(ref *_head, next, head) != head);
 
