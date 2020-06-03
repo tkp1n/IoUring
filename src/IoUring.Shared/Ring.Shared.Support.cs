@@ -140,5 +140,12 @@ namespace
         /// and specify the personality to use in the Submission Queue Entry.
         /// </summary>
         public bool SupportsCurrentPersonality => (_features & IORING_FEAT_CUR_PERSONALITY) != 0;
+
+        /// <summary>
+        /// If this flag is set, then <see cref="RingType"/> supports reading and writing operations
+        /// without manually polling first. The prepared read/write operation will be completed as soon as 
+        /// possible by the kernel.
+        /// </summary>
+        public bool SupportsFastPoll => (_features & IORING_FEAT_FAST_POLL) != 0;
     }
 }
