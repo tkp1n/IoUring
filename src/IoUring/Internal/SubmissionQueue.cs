@@ -36,8 +36,8 @@ namespace IoUring.Internal
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                uint head = _sqPolled ? Volatile.Read(ref *_head) : _headInternal;
-                return unchecked(_tailInternal - head);
+                // Don't use _headInternal to avoid loosing sync on short submits
+                return unchecked(_tailInternal - *_head);
             }
         }
 
