@@ -85,6 +85,52 @@ namespace IoUring.Concurrent
         }
 
         /// <summary>
+        /// Adds a readv, preadv or preadv2 with buffer selection to the Submission Queue.
+        /// </summary>
+        /// <param name="fd">File descriptor to read from</param>
+        /// <param name="iov">I/O vectors to read to</param>
+        /// <param name="count">Number of I/O vectors</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
+        /// <param name="flags">Flags for the I/O (as per preadv2)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareReadV(int fd, iovec* iov, int count, int bgid, off_t offset = default, int flags = 0, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareReadV(fd, iov, count, bgid, offset, flags, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a readv, preadv or preadv2 with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to read from</param>
+        /// <param name="iov">I/O vectors to read to</param>
+        /// <param name="count">Number of I/O vectors</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
+        /// <param name="flags">Flags for the I/O (as per preadv2)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareReadV(int fd, iovec* iov, int count, int bgid, off_t offset = default, int flags = 0, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareReadV(fd, iov, count, bgid, offset, flags, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
         /// Adds a writev, pwritev or pwritev2 to the Submission Queue.
         /// </summary>
         /// <param name="fd">File descriptor to write to</param>
@@ -445,6 +491,48 @@ namespace IoUring.Concurrent
                 return false;
 
             submission.PrepareRecvMsg(fd, msg, flags, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a recvmsg with buffer selection to the Submission Queue.
+        /// </summary>
+        /// <param name="fd">File descriptor to receive from</param>
+        /// <param name="msg">Message to read to</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareRecvMsg(int fd, msghdr* msg, int bgid, uint flags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareRecvMsg(fd, msg, bgid, flags, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a recvmsg with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to receive from</param>
+        /// <param name="msg">Message to read to</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRecvMsg(int fd, msghdr* msg, int bgid, uint flags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareRecvMsg(fd, msg, bgid, flags, userData, (SubmissionOption) options, personality);
 
             Release(submission);
             return true;
@@ -929,6 +1017,48 @@ namespace IoUring.Concurrent
         }
 
         /// <summary>
+        /// Adds a read with buffer selection to the Submission Queue.
+        /// </summary>
+        /// <param name="fd">File descriptor</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="nbytes">Number of bytes to read</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareRead(int fd, int bgid, uint nbytes, off_t offset, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareRead(fd, bgid, nbytes, offset, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a read with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="nbytes">Number of bytes to read</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRead(int fd, int bgid, uint nbytes, off_t offset, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareRead(fd, bgid, nbytes, offset, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
         /// Adds a write to the Submission Queue.
         /// </summary>
         /// <param name="fd">File descriptor</param>
@@ -1213,6 +1343,180 @@ namespace IoUring.Concurrent
                 return false;
 
             submission.PrepareEpollCtl(epfd, fd, op, ev, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a splice to the Submission Queue.
+        /// </summary>
+        /// <param name="fdIn">Source file descriptor</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareSplice(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareSplice(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a splice to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Source file descriptor</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareSplice(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareSplice(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a splice using a fixed file/buffer as source to the Submission Queue.
+        /// </summary>
+        /// <param name="fdIn">Fixed source file/buffer</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareSpliceFixed(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareSpliceFixed(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a splice using a fixed file/buffer as source to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Fixed source file/buffer</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareSpliceFixed(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareSpliceFixed(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a request to add provided buffers for buffer selection to the Submission Queue.
+        /// </summary>
+        /// <param name="addr">Address of the first buffer to add</param>
+        /// <param name="len">Length of each buffers to be added</param>
+        /// <param name="nr">Number of buffers to add</param>
+        /// <param name="bgid">Group ID of the buffers</param>
+        /// <param name="bid">Buffer ID of the first buffer</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareProvideBuffers(void* addr, int len, int nr, int bgid, int bid, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareProvideBuffers(addr, len, nr, bgid, bid, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a request to add provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="addr">Address of the first buffer to add</param>
+        /// <param name="len">Length of each buffers to be added</param>
+        /// <param name="nr">Number of buffers to add</param>
+        /// <param name="bgid">Group ID of the buffers</param>
+        /// <param name="bid">Buffer ID of the first buffer</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareProvideBuffers(void* addr, int len, int nr, int bgid, int bid, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareProvideBuffers(addr, len, nr, bgid, bid, userData, (SubmissionOption) options, personality);
+
+            Release(submission);
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a request to rmeove provided buffers for buffer selection to the Submission Queue.
+        /// </summary>
+        /// <param name="nr">Number of buffers to remove</param>
+        /// <param name="bgid">Group ID of the buffers to remove</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        public void PrepareRemoveBuffers(int nr, int bgid, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryPrepareRemoveBuffers(nr, bgid, userData, options, personality))
+            {
+                ThrowSubmissionQueueFullException();
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a request to rmeove provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="nr">Number of buffers to remove</param>
+        /// <param name="bgid">Group ID of the buffers to remove</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRemoveBuffers(int nr, int bgid, ulong userData = 0, ConcurrentSubmissionOption options = ConcurrentSubmissionOption.None, ushort personality = 0)
+        {
+            if (!TryAcquireSubmission(out var submission))
+                return false;
+
+            submission.PrepareRemoveBuffers(nr, bgid, userData, (SubmissionOption) options, personality);
 
             Release(submission);
             return true;

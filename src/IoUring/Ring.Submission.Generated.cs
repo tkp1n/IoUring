@@ -118,6 +118,71 @@ namespace IoUring
         }
 
         /// <summary>
+        /// Adds a readv, preadv or preadv2 with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to read from</param>
+        /// <param name="iov">I/O vectors to read to</param>
+        /// <param name="count">Number of I/O vectors</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
+        /// <param name="flags">Flags for the I/O (as per preadv2)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareReadV(int fd, iovec* iov, int count, int bgid, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareReadVInternal(fd, iov, count, bgid, offset, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a readv, preadv or preadv2 with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to read from</param>
+        /// <param name="iov">I/O vectors to read to</param>
+        /// <param name="count">Number of I/O vectors</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="offset">Offset at which the I/O is performed (as per preadv)</param>
+        /// <param name="flags">Flags for the I/O (as per preadv2)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareReadV(int fd, iovec* iov, int count, int bgid, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareReadVInternal(fd, iov, count, bgid, offset, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareReadVInternal(int fd, iovec* iov, int count, int bgid, off_t offset = default, int flags = 0, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_READV;
+                sqe->flags = (byte) ((byte) options | IOSQE_BUFFER_SELECT);
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->addr = (ulong) iov;
+                sqe->len = (uint) count;
+                sqe->rw_flags = flags;
+                sqe->user_data = userData;
+                sqe->buf_group = (ushort) bgid;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
         /// Adds a writev, pwritev or pwritev2 to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
@@ -627,6 +692,66 @@ namespace IoUring
                 sqe->len = 1;
                 sqe->msg_flags = flags;
                 sqe->user_data = userData;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
+        /// Adds a recvmsg with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to receive from</param>
+        /// <param name="msg">Message to read to</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareRecvMsg(int fd, msghdr* msg, int bgid, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareRecvMsgInternal(fd, msg, bgid, flags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a recvmsg with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor to receive from</param>
+        /// <param name="msg">Message to read to</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="flags">Flags for the operation (as per recvmsg)</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRecvMsg(int fd, msghdr* msg, int bgid, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareRecvMsgInternal(fd, msg, bgid, flags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareRecvMsgInternal(int fd, msghdr* msg, int bgid, uint flags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_RECVMSG;
+                sqe->flags = (byte) ((byte) options | IOSQE_BUFFER_SELECT);
+                sqe->fd = fd;
+                sqe->addr = (ulong) msg;
+                sqe->len = 1;
+                sqe->msg_flags = flags;
+                sqe->user_data = userData;
+                sqe->buf_group = (ushort) bgid;
                 sqe->personality = personality;
             }
 
@@ -1310,6 +1435,65 @@ namespace IoUring
         }
 
         /// <summary>
+        /// Adds a read with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="nbytes">Number of bytes to read</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareRead(int fd, int bgid, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareReadInternal(fd, bgid, nbytes, offset, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a read with buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fd">File descriptor</param>
+        /// <param name="bgid">Group ID for buffer selection</param>
+        /// <param name="nbytes">Number of bytes to read</param>
+        /// <param name="offset">Offset at which the I/O is performed</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRead(int fd, int bgid, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareReadInternal(fd, bgid, nbytes, offset, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareReadInternal(int fd, int bgid, uint nbytes, off_t offset, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_READ;
+                sqe->flags = (byte) ((byte) options | IOSQE_BUFFER_SELECT);
+                sqe->fd = fd;
+                sqe->off = (ulong) (long) offset;
+                sqe->len = nbytes;
+                sqe->user_data = userData;
+                sqe->buf_group = (ushort) bgid;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
         /// Adds a write to the Submission Queue without it being submitted.
         /// The actual submission can be deferred to avoid unnecessary memory barriers.
         /// </summary>
@@ -1711,6 +1895,251 @@ namespace IoUring
                 sqe->addr = (ulong) ev;
                 sqe->len = (uint) op;
                 sqe->user_data = userData;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
+        /// Adds a splice to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Source file descriptor</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareSplice(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareSpliceInternal(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a splice to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Source file descriptor</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareSplice(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareSpliceInternal(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareSpliceInternal(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_SPLICE;
+                sqe->flags = (byte) options;
+                sqe->fd = fdOut;
+                sqe->off = offOut;
+                sqe->splice_off_in = offIn;
+                sqe->len = nbytes;
+                sqe->splice_flags = spliceFlags;
+                sqe->user_data = userData;
+                sqe->splice_fd_in = fdIn;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
+        /// Adds a splice using a fixed file/buffer as source to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Fixed source file/buffer</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareSpliceFixed(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareSpliceFixedInternal(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a splice using a fixed file/buffer as source to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="fdIn">Fixed source file/buffer</param>
+        /// <param name="offIn">Offset into the source</param>
+        /// <param name="fdOut">Target file descriptor</param>
+        /// <param name="offOut">Offset into the target</param>
+        /// <param name="nbytes">Number of bytes to move</param>
+        /// <param name="spliceFlags">Flags for the splice</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareSpliceFixed(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareSpliceFixedInternal(fdIn, offIn, fdOut, offOut, nbytes, spliceFlags, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareSpliceFixedInternal(int fdIn, ulong offIn, int fdOut, ulong offOut, uint nbytes, uint spliceFlags, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_SPLICE;
+                sqe->flags = (byte) options;
+                sqe->fd = fdOut;
+                sqe->off = offOut;
+                sqe->splice_off_in = offIn;
+                sqe->len = nbytes;
+                sqe->splice_flags = spliceFlags | SPLICE_F_FD_IN_FIXED;
+                sqe->user_data = userData;
+                sqe->splice_fd_in = fdIn;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
+        /// Adds a request to add provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="addr">Address of the first buffer to add</param>
+        /// <param name="len">Length of each buffers to be added</param>
+        /// <param name="nr">Number of buffers to add</param>
+        /// <param name="bgid">Group ID of the buffers</param>
+        /// <param name="bid">Buffer ID of the first buffer</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareProvideBuffers(void* addr, int len, int nr, int bgid, int bid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareProvideBuffersInternal(addr, len, nr, bgid, bid, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a request to add provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="addr">Address of the first buffer to add</param>
+        /// <param name="len">Length of each buffers to be added</param>
+        /// <param name="nr">Number of buffers to add</param>
+        /// <param name="bgid">Group ID of the buffers</param>
+        /// <param name="bid">Buffer ID of the first buffer</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareProvideBuffers(void* addr, int len, int nr, int bgid, int bid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareProvideBuffersInternal(addr, len, nr, bgid, bid, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareProvideBuffersInternal(void* addr, int len, int nr, int bgid, int bid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_PROVIDE_BUFFERS;
+                sqe->flags = (byte) options;
+                sqe->fd = nr;
+                sqe->off = (uint) bid;
+                sqe->addr = (ulong) addr;
+                sqe->len = (uint) len;
+                sqe->user_data = userData;
+                sqe->buf_group = (ushort) bgid;
+                sqe->personality = personality;
+            }
+
+            return SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        /// <summary>
+        /// Adds a request to rmeove provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="nr">Number of buffers to remove</param>
+        /// <param name="bgid">Group ID of the buffers to remove</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <exception cref="SubmissionQueueFullException">If no more free space in the Submission Queue is available</exception>
+        /// <exception cref="TooManyOperationsInFlightException">If <see cref="Ring.SupportsNoDrop"/> is false and too many operations are currently in flight</exception>
+        public void PrepareRemoveBuffers(int nr, int bgid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var result = PrepareRemoveBuffersInternal(nr, bgid, userData, options, personality);
+            if (result != SubmissionAcquireResult.SubmissionAcquired)
+            {
+                ThrowSubmissionAcquisitionException(result);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a request to rmeove provided buffers for buffer selection to the Submission Queue without it being submitted.
+        /// The actual submission can be deferred to avoid unnecessary memory barriers.
+        /// </summary>
+        /// <param name="nr">Number of buffers to remove</param>
+        /// <param name="bgid">Group ID of the buffers to remove</param>
+        /// <param name="userData">User data that will be returned with the respective <see cref="Completion"/></param>
+        /// <param name="options">Options for the handling of the prepared Submission Queue Entry</param>
+        /// <param name="personality">The personality to impersonate for this submission</param>
+        /// <returns><code>false</code> if the submission queue is full. <code>true</code> otherwise.</returns>
+        public bool TryPrepareRemoveBuffers(int nr, int bgid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            return PrepareRemoveBuffersInternal(nr, bgid, userData, options, personality) == SubmissionAcquireResult.SubmissionAcquired;
+        }
+
+        private SubmissionAcquireResult PrepareRemoveBuffersInternal(int nr, int bgid, ulong userData = 0, SubmissionOption options = SubmissionOption.None, ushort personality = 0)
+        {
+            var acquireResult = NextSubmissionQueueEntry(out var sqe);
+            if (acquireResult != SubmissionAcquireResult.SubmissionAcquired) return acquireResult;
+
+            unchecked
+            {
+                sqe->opcode = IORING_OP_REMOVE_BUFFERS;
+                sqe->flags = (byte) options;
+                sqe->fd = nr;
+                sqe->user_data = userData;
+                sqe->buf_group = (ushort) bgid;
                 sqe->personality = personality;
             }
 

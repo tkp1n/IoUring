@@ -19,6 +19,19 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_READV" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) iov" len="(uint) count" rw_flags="flags" user_data="userData"/>
     </Function>
+	<Function name="ReadV" comment="a readv, preadv or preadv2 with buffer selection">
+		<Parameters>
+			<Parameter type="int" name="fd" comment="File descriptor to read from"/>
+			<Parameter type="iovec*" name="iov" comment="I/O vectors to read to"/>
+			<Parameter type="int" name="count" comment="Number of I/O vectors"/>
+			<Parameter type="int" name="bgid" comment="Group ID for buffer selection"/>
+			<Parameter type="off_t" name="offset" default="default" comment="Offset at which the I/O is performed (as per preadv)"/>
+			<Parameter type="int" name="flags" default="0" comment="Flags for the I/O (as per preadv2)"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_READV" flags="(byte) ((byte) options | IOSQE_BUFFER_SELECT)" fd="fd" off="(ulong) (long) offset" addr="(ulong) iov" len="(uint) count" rw_flags="flags" user_data="userData" buf_group="(ushort) bgid"/>
+	</Function>
     <Function name="WriteV" comment="a writev, pwritev or pwritev2">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor to write to"/>
@@ -112,6 +125,17 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_RECVMSG" flags="(byte) options" fd="fd" addr="(ulong) msg" len="1" msg_flags="flags" user_data="userData"/>
     </Function>
+	<Function name="RecvMsg" comment="a recvmsg with buffer selection">
+		<Parameters>
+			<Parameter type="int" name="fd" comment="File descriptor to receive from"/>
+			<Parameter type="msghdr*" name="msg" comment="Message to read to"/>
+			<Parameter type="int" name="bgid" comment="Group ID for buffer selection"/>
+			<Parameter type="uint" name="flags" comment="Flags for the operation (as per recvmsg)"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_RECVMSG" flags="(byte) ((byte) options | IOSQE_BUFFER_SELECT)" fd="fd" addr="(ulong) msg" len="1" msg_flags="flags" user_data="userData" buf_group="(ushort) bgid"/>
+	</Function>
     <Function name="Timeout" comment="a timeout">
         <Parameters>
             <Parameter type="timespec*" name="ts" comment="The amount of time after which the timeout should trigger if less than &lt;paramref name=&quot;count&quot;/&gt; submissions completed."/>
@@ -231,6 +255,17 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_READ" flags="(byte) options" fd="fd" off="(ulong) (long) offset" addr="(ulong) buf" len="nbytes" user_data="userData"/>
     </Function>
+	<Function name="Read" comment="a read with buffer selection">
+		<Parameters>
+			<Parameter type="int" name="fd" comment="File descriptor"/>
+			<Parameter type="int" name="bgid" comment="Group ID for buffer selection"/>
+			<Parameter type="uint" name="nbytes" comment="Number of bytes to read"/>
+			<Parameter type="off_t" name="offset" comment="Offset at which the I/O is performed"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_READ" flags="(byte) ((byte) options | IOSQE_BUFFER_SELECT)" fd="fd" off="(ulong) (long) offset" len="nbytes" user_data="userData" buf_group="(ushort) bgid"/>
+	</Function>
     <Function name="Write" comment="a write">
         <Parameters>
             <Parameter type="int" name="fd" comment="File descriptor"/>
@@ -306,4 +341,51 @@
         </Parameters>
         <MapToFields opcode="IORING_OP_EPOLL_CTL" flags="(byte) options" fd="epfd" off="(ulong) fd" addr="(ulong) ev" len="(uint) op" user_data="userData"/>
     </Function>
+	<Function name="Splice" comment="a splice">
+		<Parameters>
+			<Parameter type="int" name="fdIn" comment="Source file descriptor"/>
+			<Parameter type="ulong" name="offIn" comment="Offset into the source"/>
+			<Parameter type="int" name="fdOut" comment="Target file descriptor"/>
+			<Parameter type="ulong" name="offOut" comment="Offset into the target"/>
+			<Parameter type="uint" name="nbytes" comment="Number of bytes to move"/>
+			<Parameter type="uint" name="spliceFlags" comment="Flags for the splice"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_SPLICE" flags="(byte) options" fd="fdOut" off="offOut" splice_off_in="offIn" len="nbytes" splice_flags="spliceFlags" user_data="userData" splice_fd_in="fdIn"/>
+	</Function>
+	<Function name="SpliceFixed" comment="a splice using a fixed file/buffer as source">
+		<Parameters>
+			<Parameter type="int" name="fdIn" comment="Fixed source file/buffer"/>
+			<Parameter type="ulong" name="offIn" comment="Offset into the source"/>
+			<Parameter type="int" name="fdOut" comment="Target file descriptor"/>
+			<Parameter type="ulong" name="offOut" comment="Offset into the target"/>
+			<Parameter type="uint" name="nbytes" comment="Number of bytes to move"/>
+			<Parameter type="uint" name="spliceFlags" comment="Flags for the splice"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_SPLICE" flags="(byte) options" fd="fdOut" off="offOut" splice_off_in="offIn" len="nbytes" splice_flags="spliceFlags | SPLICE_F_FD_IN_FIXED" user_data="userData" splice_fd_in="fdIn"/>
+	</Function>
+	<Function name="ProvideBuffers" comment="a request to add provided buffers for buffer selection">
+		<Parameters>
+			<Parameter type="void*" name="addr" comment="Address of the first buffer to add"/>
+			<Parameter type="int" name="len" comment="Length of each buffers to be added"/>
+			<Parameter type="int" name="nr" comment="Number of buffers to add"/>
+			<Parameter type="int" name="bgid" comment="Group ID of the buffers"/>
+			<Parameter type="int" name="bid" comment="Buffer ID of the first buffer"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_PROVIDE_BUFFERS" flags="(byte) options" fd="nr" off="(uint) bid" addr="(ulong) addr" len="(uint) len" user_data="userData" buf_group="(ushort) bgid" />
+	</Function>
+	<Function name="RemoveBuffers" comment="a request to rmeove provided buffers for buffer selection">
+		<Parameters>
+			<Parameter type="int" name="nr" comment="Number of buffers to remove"/>
+			<Parameter type="int" name="bgid" comment="Group ID of the buffers to remove"/>
+			<Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
+			<Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
+		</Parameters>
+		<MapToFields opcode="IORING_OP_REMOVE_BUFFERS" flags="(byte) options" fd="nr" user_data="userData" buf_group="(ushort) bgid" />
+	</Function>
 </IoUring>

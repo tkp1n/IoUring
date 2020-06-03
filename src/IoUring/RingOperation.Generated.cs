@@ -32,5 +32,9 @@ namespace IoUring
         Recv,
         OpenAt2,
         EpollCtl,
+        Splice,
+        SpliceFixed,
+        ProvideBuffers,
+        RemoveBuffers,
     }
 }
