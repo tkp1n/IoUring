@@ -36,8 +36,8 @@ namespace IoUring.Internal
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                // Don't use _headInternal to avoid loosing sync on short submits
-                return unchecked(_tailInternal - *_head);
+                uint head = _sqPolled ? Volatile.Read(ref *_head) : _headInternal;
+                return unchecked(_tailInternal - head);
             }
         }
 
@@ -186,6 +186,7 @@ namespace IoUring.Internal
                 SubmitResult.SubmittedPartially;
 
         SkipSyscall:
+            _headInternal = unchecked(_headInternal + skip);
             operationsSubmitted = toSubmit;
             return SubmitResult.SubmittedSuccessfully;
         }

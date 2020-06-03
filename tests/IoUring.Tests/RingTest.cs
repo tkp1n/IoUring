@@ -292,6 +292,23 @@ namespace IoUring.Tests
 
             Assert.False(ring.TryRead(out _));
         }
+
+        [Fact]
+        public void SkippingAllSqesDoesNotInvalidateEntriesToSubmit()
+        {
+            using var ring = new Ring(8);
+
+            Assert.True(ring.TryPrepareNop());
+
+            Assert.Equal(1, ring.SubmissionEntriesUsed);
+            Assert.Equal(7, ring.SubmissionEntriesAvailable);
+
+            Assert.Equal(SubmitResult.SubmittedSuccessfully, ring.SubmitAndWait(0, 1, out var submitted));
+            Assert.Equal(0u, submitted);
+
+            Assert.Equal(0, ring.SubmissionEntriesUsed);
+            Assert.Equal(8, ring.SubmissionEntriesAvailable);
+        }
     }
 }
 
