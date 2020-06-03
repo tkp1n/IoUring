@@ -129,8 +129,8 @@ namespace IoUring
                 sqe->off = (ulong) (long) offset;
                 sqe->addr = (ulong) buf;
                 sqe->len = (uint) count;
-                sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->user_data = userData;
                 sqe->personality = personality;
             }
         }
@@ -158,8 +158,8 @@ namespace IoUring
                 sqe->off = (ulong) (long) offset;
                 sqe->addr = (ulong) buf;
                 sqe->len = (uint) count;
-                sqe->user_data = userData;
                 sqe->buf_index = (ushort) index;
+                sqe->user_data = userData;
                 sqe->personality = personality;
             }
         }
@@ -484,6 +484,7 @@ namespace IoUring
                 sqe->fd = dfd;
                 sqe->addr = (ulong) path;
                 sqe->len = (uint) mode;
+                sqe->open_flags = (uint) flags;
                 sqe->user_data = userData;
                 sqe->personality = personality;
             }
@@ -559,6 +560,7 @@ namespace IoUring
                 sqe->off = (ulong) statxbuf;
                 sqe->addr = (ulong) path;
                 sqe->len = mask;
+                sqe->statx_flags = (uint) flags;
                 sqe->user_data = userData;
                 sqe->personality = personality;
             }
@@ -639,6 +641,7 @@ namespace IoUring
                 sqe->fd = fd;
                 sqe->off = (ulong) (long) offset;
                 sqe->len = (uint) len;
+                sqe->fadvise_advice = (uint) advice;
                 sqe->user_data = userData;
                 sqe->personality = personality;
             }
@@ -663,6 +666,7 @@ namespace IoUring
                 sqe->flags = (byte) options;
                 sqe->fd = -1;
                 sqe->len = (uint) len;
+                sqe->fadvise_advice = (uint) advice;
                 sqe->user_data = userData;
                 sqe->personality = personality;
             }

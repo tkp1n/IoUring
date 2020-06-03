@@ -188,7 +188,7 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_OPENAT" flags="(byte) options" fd="dfd" addr="(ulong) path" len="(uint) mode" open_flags="flags" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_OPENAT" flags="(byte) options" fd="dfd" addr="(ulong) path" len="(uint) mode" open_flags="(uint) flags" user_data="userData"/>
     </Function>
     <Function name="Close" comment="a close">
         <Parameters>
@@ -218,7 +218,7 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_STATX" flags="(byte) options" fd="dfd" off="(ulong) statxbuf" addr="(ulong) path" len="mask" statx_flags="flags" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_STATX" flags="(byte) options" fd="dfd" off="(ulong) statxbuf" addr="(ulong) path" len="mask" statx_flags="(uint) flags" user_data="userData"/>
     </Function>
     <Function name="Read" comment="a read">
         <Parameters>
@@ -251,7 +251,7 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_FADVISE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" len="(uint) len" fadvise_advice="advice" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_FADVISE" flags="(byte) options" fd="fd" off="(ulong) (long) offset" len="(uint) len" fadvise_advice="(uint) advice" user_data="userData"/>
     </Function>
     <Function name="Madvise" comment="an madvise">
         <Parameters>
@@ -261,7 +261,7 @@
             <Parameter type="ulong" name="userData" default="0" comment="User data that will be returned with the respective &lt;see cref=&quot;Completion&quot;/&gt;"/>
             <Parameter type="SubmissionOption" name="options" default="SubmissionOption.None" comment="Options for the handling of the prepared Submission Queue Entry" />
         </Parameters>
-        <MapToFields opcode="IORING_OP_MADVISE" flags="(byte) options" fd="-1" len="(uint) len" fadvise_advice="advice" user_data="userData"/>
+        <MapToFields opcode="IORING_OP_MADVISE" flags="(byte) options" fd="-1" len="(uint) len" fadvise_advice="(uint) advice" user_data="userData"/>
     </Function>
     <Function name="Send" comment="a send">
         <Parameters>
