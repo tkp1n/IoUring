@@ -20,6 +20,8 @@ jobs:
         dotnet-version: 5.0.x
     - name: Build
       run: dotnet build
+    - name: Test
+      run: dotnet test
     - name: Pack
       if: github.ref == 'refs/heads/master'
       run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
