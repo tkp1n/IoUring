@@ -18,7 +18,8 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  build:
+  publish:
+    if: github.repository_owner == 'tkp1n'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
@@ -32,10 +33,10 @@ jobs:
     - name: Build
       run: dotnet build
       
-    #- name: Pack
-    #  if: github.ref == 'refs/heads/master'
-    #  run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
-    #  
-    #- name: Publish (MyGet)
-    #  if: github.ref == 'refs/heads/master'
-    #  run: ls *.nupkg | xargs -i dotnet nuget push {} --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v3/index.json
+    - name: Pack
+      if: github.ref == 'refs/heads/master'
+      run: dotnet build --configuration Release && dotnet pack --configuration Release --version-suffix "$(date "+%s")" --output .
+      
+    - name: Publish (MyGet)
+      if: github.ref == 'refs/heads/master'
+      run: ls *.nupkg | xargs -i dotnet nuget push {} --api-key ${{ secrets.myget_api }} --source https://www.myget.org/F/tkp1n/api/v3/index.json
